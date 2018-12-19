@@ -1,0 +1,9 @@
+# as per https://www.dartlang.org/guides/libraries/private-files
+
+.dart_tool/
+.idea
+.pub
+.packages
+build
+pubspec.lock
+doc/api/

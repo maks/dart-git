@@ -1,0 +1,10 @@
+name: dart_git
+version: 0.0.1
+author: Maksim Lin <maks@manichrod.com>
+description: Pure Dart implementation of Git
+homepage: https://github.com/maks/dart-git
+
+
+dev_dependencies:
+  test: ^1.2.0
+  

@@ -1,5 +1,9 @@
-## Pure Dart implementation of Git
+# Pure Dart implementation of Git
 
+
+## Usage
+
+With a dependency on [dart-io](https://www.dartlang.org/articles/libraries/dart-io), this library only runs in Flutter and the standalone Dart VM.
 
 
 ## Background / History
