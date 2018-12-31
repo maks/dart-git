@@ -19,7 +19,6 @@ import '../options.dart';
 import '../pack.dart';
 import '../upload_pack_parser.dart';
 import '../utils.dart';
-import '../../utils.dart';
 
 export '../options.dart';
 
