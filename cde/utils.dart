@@ -5,18 +5,9 @@
 library spark.utils;
 
 import 'dart:async';
-import 'dart:html' as html;
 import 'dart:typed_data' as typed_data;
-import 'dart:web_audio';
 
-import 'package:ace/ace.dart' as ace;
-import 'package:chrome/chrome_app.dart' as chrome;
-import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
-
-import 'exception.dart';
-
-final NumberFormat _nf = new NumberFormat.decimalPattern();
 
 final RegExp _imageFileTypes = new RegExp(r'\.(jpe?g|png|gif|ico)$',
     caseSensitive: false);
@@ -24,28 +15,6 @@ final RegExp _imageFileTypes = new RegExp(r'\.(jpe?g|png|gif|ico)$',
 final RegExp _webFileTypes = new RegExp(r'\.(css|html?|xml)$',
     caseSensitive: false);
 
-chrome.DirectoryEntry _packageDirectoryEntry;
-
-/**
- * This method is shorthand for [chrome.i18n.getMessage].
- */
-String i18n(String messageId) => chrome.i18n.getMessage(messageId);
-
-/**
- * Return the Chrome App's directory. This utility method ensures that we only
- * make the `chrome.runtime.getPackageDirectoryEntry` once in the application's
- * lifetime.
- */
-Future<chrome.DirectoryEntry> getPackageDirectoryEntry() {
-  if (_packageDirectoryEntry != null) {
-    return new Future.value(_packageDirectoryEntry);
-  }
-
-  return chrome.runtime.getPackageDirectoryEntry().then((dir) {
-    _packageDirectoryEntry = dir;
-    return dir;
-  });
-}
 
 /**
  * Returns the given word with the first character capitalized.
@@ -100,54 +69,6 @@ List<dynamic> trimEnds(List<dynamic> input, bool test(dynamic v)) {
   return output;
 }
 
-AudioContext _ctx;
-
-void beep() {
-  if (_ctx == null) {
-    _ctx = new AudioContext();
-  }
-
-  OscillatorNode osc = _ctx.createOscillator();
-
-  osc.connectNode(_ctx.destination, 0, 0);
-  osc.start(0);
-  osc.stop(_ctx.currentTime + 0.1);
-}
-
-/**
- * Return whether the current runtime is dart2js (vs Dartium).
- */
-bool isDart2js() => identical(1, 1.0);
-
-/**
- * Return the contents of the file at the given path. The path is relative to
- * the Chrome app's directory.
- */
-Future<List<int>> getAppContentsBinary(String path) {
-  String url = chrome.runtime.getURL(path);
-
-  return html.HttpRequest.request(url, responseType: 'arraybuffer').then((request) {
-    var response = request.response;
-
-    if (response is List) {
-      return response;
-    } else {
-      typed_data.ByteBuffer buffer = request.response;
-      return new typed_data.Uint8List.view(buffer);
-    }
-  });
-}
-
-/**
- * Return the contents of the file at the given path. The path is relative to
- * the Chrome app's directory.
- */
-Future<String> getAppContents(String path) {
-  return html.HttpRequest.getString(chrome.runtime.getURL(path))
-      .catchError((e, s) =>
-          throw "Couldn't download $path: error code ${e.target.status}");
-}
-
 /**
  * Returns true if the given [filename] matches common image file name patterns.
  */
@@ -175,36 +96,7 @@ bool isTextFilename(String name) {
 /**
  * Returns a Future that completes after the next tick.
  */
-Future nextTick() => new Future.delayed(Duration.ZERO);
-
-html.DirectoryEntry _html5FSRoot;
-
-/**
- * Returns the root directory of the application's persistent local storage.
- */
-Future<html.DirectoryEntry> getLocalDataRoot() {
-  // For now we request 100 MBs; would like this to be unlimited though.
-  final int requestedSize = 100 * 1024 * 1024;
-
-  if (_html5FSRoot != null) return new Future.value(_html5FSRoot);
-
-  return html.window.requestFileSystem(
-      requestedSize, persistent: true).then((html.FileSystem fs) {
-    _html5FSRoot = fs.root;
-    return _html5FSRoot;
-  });
-}
-
-/**
- * Creates and returns a directory in persistent local storage. This can be used
- * to cache application data, e.g `getLocalDataDir('workspace')` or
- * `getLocalDataDir('pub')`.
- */
-Future<html.DirectoryEntry> getLocalDataDir(String name) {
-  return getLocalDataRoot().then((html.DirectoryEntry root) {
-    return root.createDirectory(name, exclusive: false);
-  });
-}
+Future nextTick() => new Future.delayed(Duration.zero);
 
 /**
  * Return the most likely IP address for this machine.
@@ -238,8 +130,6 @@ abstract class Notifier {
 
   Future<bool> askUserOkCancel(
       String message, {String okButtonLabel: 'OK', String title: ""});
-
-  Future<chrome.ChromeFileEntry> chooseFileEntry();
 }
 
 /**
@@ -257,10 +147,6 @@ class NullNotifier implements Notifier {
 
   Future<bool> askUserOkCancel(
       String message, {String okButtonLabel: 'OK', String title: ""}) {
-    return new Future.error("Not implemented");
-  }
-
-  Future<chrome.ChromeFileEntry> chooseFileEntry() {
     return new Future.error("Not implemented");
   }
 }
@@ -397,7 +283,7 @@ String minimizeStackTrace(StackTrace st) {
   List lines = st.toString().trim().split('\n');
   lines = lines
       .map((l) => l.trim())
-      .where((String line) => line.startsWith('at ') || line.startsWith('#'))
+      .where((line) => line.startsWith('at ') || line.startsWith('#'))
       .map((l) => _minimizeLine(l))
       .toList();
 
@@ -578,66 +464,6 @@ class JsonPrinter {
     _in = _in.substring(2);
     return '\n${_in}';
   }
-}
-
-/**
- * Downloads a remote file at [url]. Returns the file's text. If file doesn't
- * exist, returns an empty string.
- */
-Future<String> downloadFileViaXhr(
-    String url,
-    [String mimeType = 'text\/plain; charset=x-user-defined']) {
-  final completer = new Completer();
-  final request = new html.HttpRequest();
-
-  request.open('GET', url);
-  request.overrideMimeType(mimeType);
-  request.onLoadEnd.listen((event) {
-    if (request.status == 200) {
-      completer.complete(request.responseText);
-    } else if (request.status == 403) {
-      // Access forbidden. It's possible that we've hit a rate limit.
-      final String rateLimitRemaining =
-          request.responseHeaders['x-ratelimit-remaining'];
-      if (rateLimitRemaining == '0') {
-        String rateLimitReset = request.responseHeaders['x-ratelimit-reset'];
-        if (rateLimitReset != null) {
-          final int msSinceEpoch = int.parse(rateLimitReset) * 1000;
-          rateLimitReset = new DateTime.fromMillisecondsSinceEpoch(
-              msSinceEpoch, isUtc: true).toLocal().toString();
-        } else {
-          rateLimitReset = "unknown time";
-        }
-        completer.completeError(
-            "Reached the access rate limit when requesting '$url': "
-            "the limit will reset at $rateLimitReset");
-      } else {
-        completer.completeError("Access to '$url' is (temporarily) forbidden");
-      }
-    } else if (request.status == 404) {
-      // Remote file doesn't exist.
-      completer.complete('');
-    } else {
-      completer.completeError(
-          "Failed to download '$url': ${request.statusText}");
-    }
-  });
-  request.send();
-
-  return completer.future;
-}
-
-Future<String> getRedirectedUrlViaXhr(String url) {
-  final completer = new Completer();
-  final request = new html.HttpRequest();
-
-  request.open('HEAD', url);
-  request.onLoadEnd.listen((event) {
-    completer.complete(request.responseUrl);
-  });
-  request.send();
-
-  return completer.future;
 }
 
 class DelayedTimer {
