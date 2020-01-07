@@ -1,4 +1,6 @@
-# Pure Dart implementation of Git
+# UPDATE: this had been **abandoned** in favour of the [dit project](http://github.com/maks/dit)
+
+## Pure Dart implementation of Git
 
 
 ## Usage
