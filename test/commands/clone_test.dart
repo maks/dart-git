@@ -4,10 +4,10 @@
 
 library git_clone_test;
 
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
-import '../../../lib/git/commands/clone.dart';
-import '../../../lib/git/objectstore.dart';
+import '../../lib/src/commands/clone.dart';
+import '../../lib/src/objectstore.dart';
 import 'utils.dart';
 
 defineTests() {

@@ -7,12 +7,10 @@ library git.pack;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
-import 'dart:html';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:chrome/chrome_app.dart' as chrome;
 import 'package:utf/utf.dart';
 
 import 'fast_sha.dart';
@@ -52,7 +50,6 @@ class Pack {
 
   List<int> _peek(int length) => data.sublist(_offset, _offset + length);
 
-
   void _advance(int length) {
     _offset += length;
   }
@@ -66,7 +63,7 @@ class Pack {
   }
 
   void _matchPrefix() {
-    if (UTF8.decode(_peek(4)) == 'PACK') {
+    if (utf8.decode(_peek(4)) == 'PACK') {
       _advance(4);
     } else {
       // TODO(grv): Throw custom error.
@@ -133,7 +130,7 @@ class Pack {
       // TODO(grv): Throw custom exception.
       String msg =
           "expected packfile version ${expectedVersion} but got ${version}";
-          throw msg;
+      throw msg;
     }
   }
 
@@ -142,16 +139,15 @@ class Pack {
     bool needMore = false;
 
     do {
-      String hintAndOffsetBits = _padString(
-          _peek(1)[0].toRadixString(2), 8, '0');
+      String hintAndOffsetBits =
+          _padString(_peek(1)[0].toRadixString(2), 8, '0');
       needMore = (hintAndOffsetBits[0] == '1');
       offsetBytes.add(hintAndOffsetBits.substring(1, 8));
       _advance(1);
-    } while(needMore);
+    } while (needMore);
 
-    String longOffsetString = offsetBytes.reduce((String memo,
-        String el) => memo + el);
-
+    String longOffsetString =
+        offsetBytes.reduce((String memo, String el) => memo + el);
 
     int offsetDelta = int.parse(longOffsetString, radix: 2);
 
@@ -177,7 +173,8 @@ class Pack {
       switch (baseObj.type) {
         case ObjectTypes.OFS_DELTA_STR:
         case ObjectTypes.REF_DELTA_STR:
-          return expandDeltifiedObject(baseObj).then((PackedObject expandedObject) {
+          return expandDeltifiedObject(baseObj)
+              .then((PackedObject expandedObject) {
             return doExpand(expandedObject, object);
           });
         default:
@@ -195,15 +192,11 @@ class Pack {
   }
 
   ZlibResult _uncompressObject(int objOffset, int uncompressedLength) {
-    return Zlib.inflate(
-        data,
-        offset: objOffset,
-        expectedLength: uncompressedLength);
+    return Zlib.inflate(data,
+        offset: objOffset, expectedLength: uncompressedLength);
   }
 
-
   PackedObject _matchObjectData(PackObjectHeader header) {
-
     PackedObject object = new PackedObject();
 
     object.offset = header.offset;
@@ -231,8 +224,8 @@ class Pack {
     return object;
   }
 
-  Future<PackedObject> matchAndExpandObjectAtOffset(int startOffset,
-      String dataType) {
+  Future<PackedObject> matchAndExpandObjectAtOffset(
+      int startOffset, String dataType) {
     PackedObject object = _matchObjectAtOffset(startOffset);
 
     switch (object.type) {
@@ -260,45 +253,44 @@ class Pack {
       _matchVersion(2);
       numObjects = _matchNumberOfObjects();
 
-       Future parse(_) {
+      Future parse(_) {
+        _checkCancel();
+        PackedObject object = _matchObjectAtOffset(_offset);
+        object.crc = getCrc32(data.sublist(object.offset, _offset));
 
-         _checkCancel();
-         PackedObject object = _matchObjectAtOffset(_offset);
-         object.crc = getCrc32(data.sublist(object.offset, _offset));
+        // hold on to the data for delta style objects.
+        switch (object.type) {
+          case ObjectTypes.OFS_DELTA_STR:
+          case ObjectTypes.REF_DELTA_STR:
+            deferredObjects.add(object);
+            break;
+          default:
+            object.shaBytes = getObjectHash(object.type, object.data);
+            object.data = null;
+            // TODO(grv): Add progress.
+            break;
+        }
 
-         // hold on to the data for delta style objects.
-         switch (object.type) {
-           case ObjectTypes.OFS_DELTA_STR:
-           case ObjectTypes.REF_DELTA_STR:
-             deferredObjects.add(object);
-             break;
-           default:
-             object.shaBytes = getObjectHash(object.type, object.data);
-             object.data = null;
-             // TODO(grv): Add progress.
-             break;
-         }
+        objects.add(object);
+        return new Future.value();
+      }
 
-         objects.add(object);
-         return new Future.value();
-       }
+      Future expandDeltified(PackedObject obj) {
+        _checkCancel();
+        return expandDeltifiedObject(obj).then((PackedObject deltifiedObj) {
+          deltifiedObj.data = null;
+          // TODO(grv): Add progress.
+        });
+      }
 
-       Future expandDeltified(PackedObject obj) {
-         _checkCancel();
-         return expandDeltifiedObject(obj).then((PackedObject deltifiedObj) {
-           deltifiedObj.data = null;
-           // TODO(grv): Add progress.
-         });
-       }
-
-       List iter = new List(numObjects);
-       // This is computational intense and may take several seconds. Refresh
-       // UI after each iteartion. First parse all the git objects. Expand
-       // any deltified object.
-       return FutureHelper.forEachNonBlockingUI(iter, parse).then((_) {
-         return FutureHelper.forEachNonBlockingUI(deferredObjects,
-             expandDeltified);
-       });
+      List iter = new List(numObjects);
+      // This is computational intense and may take several seconds. Refresh
+      // UI after each iteartion. First parse all the git objects. Expand
+      // any deltified object.
+      return FutureHelper.forEachNonBlockingUI(iter, parse).then((_) {
+        return FutureHelper.forEachNonBlockingUI(
+            deferredObjects, expandDeltified);
+      });
     } catch (e, st) {
       return new Future.error(e, st);
     }
@@ -360,7 +352,7 @@ class Pack {
           }
 
           opcode >>= 1;
-          shift +=8;
+          shift += 8;
         }
 
         shift = 0;
@@ -371,23 +363,23 @@ class Pack {
             copyLength += (value << shift);
           }
           opcode >>= 1;
-          shift +=8;
+          shift += 8;
         }
 
         if (copyLength == 0) {
-          copyLength = (1<<16);
+          copyLength = (1 << 16);
         }
 
         // TODO(grv): Check if this is a version 2 packfile and apply
         // copyFromResult if so.
         copyFromResult = (opcode & 0x01);
-        List<int> sublist = baseData.sublist(copyOffset,
-            copyOffset + copyLength);
+        List<int> sublist =
+            baseData.sublist(copyOffset, copyOffset + copyLength);
         resultData.setAll(resultOffset, sublist);
         resultOffset += sublist.length;
       } else if ((opcode & 0x80) == 0) {
-        List<int> sublist = stream.data.sublist(stream.offset,
-            stream.offset + opcode);
+        List<int> sublist =
+            stream.data.sublist(stream.offset, stream.offset + opcode);
         resultData.setAll(resultOffset, sublist);
         resultOffset += sublist.length;
         stream.offset += opcode;
@@ -400,27 +392,29 @@ class Pack {
   /**
    * Create pack and packIndex file. Adds the created pack to the [store].
    */
-  static Future<chrome.DirectoryEntry> createPackFiles(
+  static Future<DirectoryEntry> createPackFiles(
       ObjectStore store, PackParseResult result) {
     List<int> packSha = result.data.sublist(result.data.length - 20);
     Uint8List packIdxData = PackIndex.writePackIndex(result.objects, packSha);
 
     // Get a veiw of the sorted shas.
     int offset = 4 + 4 + (256 * 4);
-    Uint8List sortedShas = packIdxData.sublist(offset,
-        offset + result.objects.length * 20);
+    Uint8List sortedShas =
+        packIdxData.sublist(offset, offset + result.objects.length * 20);
 
     FastSha sha1 = new FastSha();
     sha1.add(sortedShas);
     String packNameSha = shaBytesToString(sha1.close());
 
     String packName = 'pack-${packNameSha}';
-    return FileOps.createDirectoryRecursive(store.root, '.git/objects').then(
-        (chrome.DirectoryEntry objectsDir) {
-      return FileOps.createFileWithContent(objectsDir, 'pack/${packName}.pack',
-          result.data, 'blob').then((_) {
-        return FileOps.createFileWithContent(objectsDir, 'pack/${packName}.idx',
-            packIdxData, 'blob').then((_) {
+    return FileOps.createDirectoryRecursive(store.root, '.git/objects')
+        .then((DirectoryEntry objectsDir) {
+      return FileOps.createFileWithContent(
+              objectsDir, 'pack/${packName}.pack', result.data, 'blob')
+          .then((_) {
+        return FileOps.createFileWithContent(
+                objectsDir, 'pack/${packName}.idx', packIdxData, 'blob')
+            .then((_) {
           store.objectDir = objectsDir;
           PackIndex packIdx = new PackIndex(packIdxData);
           store.packs.add(new PackEntry(new Pack(result.data, store), packIdx));
@@ -470,13 +464,13 @@ class PackBuilder {
   void _packIt(LooseObject object) {
     dynamic buf = object.data;
     List<int> data;
-    if  (buf is chrome.ArrayBuffer) {
+    if (buf is ArrayBuffer) {
       data = buf.getBytes();
     } else if (buf is Uint8List || buf is List<int>) {
       data = buf;
     } else {
       // assume it's a string.
-      data = UTF8.encoder.convert(buf);
+      data = utf8.encoder.convert(buf);
     }
     ByteBuffer compressed;
     compressed = new Uint8List.fromList(Zlib.deflate(data).data).buffer;
@@ -499,8 +493,8 @@ class PackBuilder {
 
     _packed.insert(0, dataView);
 
-    return FileOps.readBlob(new Blob(_packed), 'ArrayBuffer').then(
-        (Uint8List data) {
+    return FileOps.readBlob(new Blob(_packed), 'ArrayBuffer')
+        .then((Uint8List data) {
       List<int> sha = getShaAsBytes(data);
       List<Uint8List> finalPack = [];
       finalPack.add(data);
@@ -523,7 +517,8 @@ class PackBuilder {
       return new Future.value();
     } catch (e) {
       return _packTree(treeSha);
-    };
+    }
+    ;
   }
 
   Future _packTree(String treeSha) {
@@ -539,14 +534,14 @@ class PackBuilder {
               _store.findPackedObject(entry.shaBytes);
               return new Future.value();
             } catch (e) {
-              return _store.retrieveObject(nextSha, 'Raw').then(
-                  (object) => _packIt(object));
+              return _store
+                  .retrieveObject(nextSha, 'Raw')
+                  .then((object) => _packIt(object));
             }
           }
         } else {
           return _walkTree(nextSha);
         }
-
       }).then((_) => _packIt(tree.rawObj));
     });
   }

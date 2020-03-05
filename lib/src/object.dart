@@ -18,13 +18,12 @@ import 'utils.dart';
  * TODO(grv): Add unittests.
  */
 abstract class GitObject {
-
   /**
    * Constructs a GitObject of the given type. [content] can be of type [String]
    * or [Uint8List].
    */
   static GitObject make(String sha, String type, dynamic content,
-                        [LooseObject rawObj]) {
+      [LooseObject rawObj]) {
     switch (type) {
       case ObjectTypes.BLOB_STR:
         return new BlobObject(sha, content);
@@ -54,7 +53,6 @@ abstract class GitObject {
  * Represents an entry in a git TreeObject.
  */
 class TreeEntry {
-
   final String name;
   List<int> shaBytes;
   final bool isBlob;
@@ -90,14 +88,13 @@ class ParseError extends Error {
  * A tree type git object.
  */
 class TreeObject extends GitObject {
-
   List<TreeEntry> entries;
   LooseObject rawObj;
 
-  TreeObject( [String sha, Uint8List data, LooseObject rawObj])
+  TreeObject([String sha, Uint8List data, LooseObject rawObj])
       : super(sha, data) {
     this.type = ObjectTypes.TREE_STR;
-    this.rawObj  = rawObj;
+    this.rawObj = rawObj;
     _parse();
   }
 
@@ -120,18 +117,19 @@ class TreeObject extends GitObject {
         idx++;
       }
       bool isBlob = buffer[entryStart] == 49; // '1' character
-      if (buffer[entryStart + 1] == 54) {  // '6' character
+      if (buffer[entryStart + 1] == 54) {
+        // '6' character
         // Contains a submodule commit object, not supported yet.
         throw new GitException(
             GitErrorConstants.GIT_SUBMODULES_NOT_YET_SUPPORTED);
       }
-      String permission = UTF8.decode(buffer.sublist(
-          entryStart, entryStart + (isBlob? 6 : 5)));
-      String nameStr = UTF8.decode(buffer.sublist(
-          entryStart + (isBlob ? 7: 6), idx++));
+      String permission = utf8
+          .decode(buffer.sublist(entryStart, entryStart + (isBlob ? 6 : 5)));
+      String nameStr =
+          utf8.decode(buffer.sublist(entryStart + (isBlob ? 7 : 6), idx++));
       nameStr = Uri.decodeComponent(HTML_ESCAPE.convert(nameStr));
-      TreeEntry entry = new TreeEntry(nameStr, buffer.sublist(idx, idx + 20),
-          isBlob, permission);
+      TreeEntry entry = new TreeEntry(
+          nameStr, buffer.sublist(idx, idx + 20), isBlob, permission);
       treeEntries.add(entry);
       idx += 20;
     }
@@ -145,7 +143,6 @@ class TreeObject extends GitObject {
  * Represents a git blob object.
  */
 class BlobObject extends GitObject {
-
   BlobObject(String sha, dynamic data) : super(sha, data) {
     this.type = ObjectTypes.BLOB_STR;
   }
@@ -155,7 +152,6 @@ class BlobObject extends GitObject {
  * Represents author's / commiter's information in a git commit object.
  */
 class Author {
-
   String name;
   String email;
   int timestamp;
@@ -166,7 +162,6 @@ class Author {
  * Represents a git commit object.
  */
 class CommitObject extends GitObject {
-
   List<String> parents;
   Author author;
   Author committer;
@@ -183,7 +178,7 @@ class CommitObject extends GitObject {
     this.rawObj = rawObj;
 
     if (data is Uint8List) {
-      this.data = UTF8.decode(data);
+      this.data = utf8.decode(data);
     } else if (data is String) {
       this.data = data;
     } else {
@@ -200,7 +195,7 @@ class CommitObject extends GitObject {
 
     int i = 1;
     parents = [];
-    while (lines[i].substring(0,6) == "parent") {
+    while (lines[i].substring(0, 6) == "parent") {
       parents.add(lines[i].split(" ")[1]);
       i++;
     }
@@ -215,13 +210,12 @@ class CommitObject extends GitObject {
       _encoding = lines[i + 2].split(" ")[1];
     }
 
-    lines.removeRange(0, i +2);
+    lines.removeRange(0, i + 2);
 
     message = lines.join("\n");
   }
 
   Author _parseAuthor(String input) {
-
     // Regex " AuthorName <Email>  timestamp timeOffset"
     final RegExp pattern = new RegExp(r'(.*) <(.*)> (\d+) (\+|\-)\d\d\d\d');
     List<Match> match = pattern.allMatches(input).toList();
@@ -230,8 +224,8 @@ class CommitObject extends GitObject {
     author.name = match[0].group(1);
     author.email = match[0].group(2);
     author.timestamp = (int.parse(match[0].group(3))) * 1000;
-    author.date = new DateTime.fromMillisecondsSinceEpoch(
-        author.timestamp, isUtc:true);
+    author.date =
+        new DateTime.fromMillisecondsSinceEpoch(author.timestamp, isUtc: true);
     return author;
   }
 
@@ -249,12 +243,12 @@ class CommitObject extends GitObject {
    */
   Map<String, String> toMap() {
     return {
-            "commit": sha,
-            "author_name": author.name,
-            "author_email": author.email,
-            "date": author.date.toString(),
-            "message": message
-           };
+      "commit": sha,
+      "author_name": author.name,
+      "author_email": author.email,
+      "date": author.date.toString(),
+      "message": message
+    };
   }
 }
 
@@ -285,7 +279,7 @@ class LooseObject extends GitObject {
       List<String> headChars = [];
       for (i = 0; i < buf.length; ++i) {
         if (buf[i] != 0)
-          headChars.add(UTF8.decode([buf[i]]));
+          headChars.add(utf8.decode([buf[i]]));
         else
           break;
       }

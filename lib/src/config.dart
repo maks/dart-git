@@ -33,8 +33,8 @@ class Config {
     return {
       'url': url,
       'shallow': shallow,
-      'remoteHeads' : remoteHeads,
-      'time' : time.millisecondsSinceEpoch,
+      'remoteHeads': remoteHeads,
+      'time': time.millisecondsSinceEpoch,
     };
   }
 
@@ -44,6 +44,6 @@ class Config {
   }
 
   String toJson() {
-    return JSON.encode(toMap());
+    return json.encode(toMap());
   }
 }

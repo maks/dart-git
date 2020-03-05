@@ -2,17 +2,15 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-library git_branch_test;
+library git_checkout_test;
 
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 /**
  * TODO(grv) : Add tests and checks.
  */
 defineTests() {
-  group('git.commands.branch', () {
-    test('todo', () {
-
-    });
+  group('git.commands.checkout', () {
+    test('todo', () {});
   });
 }

@@ -6,8 +6,7 @@ library git.utils;
 
 import 'dart:async';
 import 'dart:core';
-
-import 'package:chrome/chrome_app.dart' as chrome;
+import 'package:dart_git/src/entry.dart';
 import 'package:logging/logging.dart';
 
 import 'constants.dart';
@@ -28,7 +27,7 @@ bool isGitUri(String uri) => _gitUrlRegExp.hasMatch(uri);
 List<int> shaToBytes(String sha) {
   List<int> bytes = [];
   for (var i = 0; i < sha.length; i += 2) {
-    bytes.add(int.parse('0x' + sha[i] + sha[i+1]));
+    bytes.add(int.parse('0x' + sha[i] + sha[i + 1]));
   }
   return bytes;
 }
@@ -47,8 +46,8 @@ String shaBytesToString(List<int> sha) {
   return buf.toString();
 }
 
-Future<String> getShaForEntry(chrome.ChromeFileEntry entry, String type) {
-  return entry.readBytes().then((chrome.ArrayBuffer content) {
+Future<String> getShaForEntry(ChromeFileEntry entry, String type) {
+  return entry.readBytes().then((ArrayBuffer content) {
     return getShaStringForData(content.getBytes(), type);
   });
 }
@@ -77,11 +76,11 @@ List<int> getShaAsBytes(List<int> data) {
 /**
  * Clears the given working directory.
  */
-Future cleanWorkingDir(chrome.DirectoryEntry root) {
-  return FileOps.listFiles(root).then((List<chrome.DirectoryEntry> entries) {
-    return Future.forEach(entries, (chrome.Entry entry) {
+Future cleanWorkingDir(DirectoryEntry root) {
+  return FileOps.listFiles(root).then((List<DirectoryEntry> entries) {
+    return Future.forEach(entries, (Entry entry) {
       if (entry.isDirectory) {
-        chrome.DirectoryEntry dirEntry = entry;
+        DirectoryEntry dirEntry = entry;
         // Do not remove the .git directory.
         if (entry.name == '.git') {
           return null;
@@ -104,8 +103,7 @@ Future cleanWorkingDir(chrome.DirectoryEntry root) {
  */
 String getCurrentTimeAsString() {
   DateTime now = new DateTime.now();
-  String dateString =
-      (now.millisecondsSinceEpoch / 1000).floor().toString();
+  String dateString = (now.millisecondsSinceEpoch / 1000).floor().toString();
   int offset = (now.timeZoneOffset.inHours).floor();
   int absOffset = offset.abs().floor();
   String offsetStr = ' ' + (offset < 0 ? '-' : '+');
@@ -126,7 +124,6 @@ void nopFunction() => null;
  * is cancelled.
  */
 abstract class Cancel {
-
   bool _cancel = false;
   String _errorCode;
   bool canIgnore;
@@ -150,7 +147,7 @@ abstract class Cancel {
 /**
  * Returns a Future that completes after the next tick.
  */
-Future nextTick() => new Future.delayed(Duration.ZERO);
+Future nextTick() => new Future.delayed(Duration.zero);
 
 class FutureHelper {
   /**
@@ -172,7 +169,7 @@ class FutureHelper {
         nextTick().then((_) {
           try {
             f(iterator.current)
-             .then(nextElement,  onError: (e) => doneSignal.completeError(e));
+                .then(nextElement, onError: (e) => doneSignal.completeError(e));
           } catch (e) {
             doneSignal.completeError(e);
           }
@@ -181,6 +178,7 @@ class FutureHelper {
         doneSignal.complete(null);
       }
     }
+
     nextElement(null);
     return doneSignal.future;
   }

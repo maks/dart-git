@@ -4,13 +4,11 @@
 
 library git.options;
 
-import 'dart:html';
 import 'dart:js' as js;
 
 import 'objectstore.dart';
 
 class GitOptions {
-
   // The directory entry where the git checkout resides.
   DirectoryEntry root;
 
@@ -34,9 +32,17 @@ class GitOptions {
   int depth;
   Function progressCallback;
 
-  GitOptions({this.root, this.repoUrl, this.depth, this.store,
-              this.branchName, this.commitMessage, this.email, this.name,
-              this.username, this.password});
+  GitOptions(
+      {this.root,
+      this.repoUrl,
+      this.depth,
+      this.store,
+      this.branchName,
+      this.commitMessage,
+      this.email,
+      this.name,
+      this.username,
+      this.password});
 
   js.JsObject toJsMap() {
     Map<String, dynamic> options = new Map<String, dynamic>();

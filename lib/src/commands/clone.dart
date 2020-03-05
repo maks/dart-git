@@ -5,8 +5,7 @@
 library git.commands.clone;
 
 import 'dart:async';
-
-import 'package:chrome/chrome_app.dart' as chrome;
+import 'package:dart_git/src/entry.dart';
 
 import '../config.dart';
 import '../constants.dart';
@@ -42,7 +41,7 @@ class Clone {
     _cancel = new CloneCancel();
   }
 
-  chrome.DirectoryEntry get root => _options.root;
+  DirectoryEntry get root => _options.root;
 
   ObjectStore get store => _options.store;
 
@@ -83,9 +82,11 @@ class Clone {
    */
   Future startClone(HttpFetcher fetcher) {
     return _checkDirectory(root, store, true).then((_) {
-      return _options.root.createDirectory(".git").then(
-          (chrome.DirectoryEntry gitDir) {
-        return _callMethod(fetcher.fetchUploadRefs,[]).then((List<GitRef> refs) {
+      return _options.root
+          .createDirectory(".git")
+          .then((DirectoryEntry gitDir) {
+        return _callMethod(fetcher.fetchUploadRefs, [])
+            .then((List<GitRef> refs) {
           logger.info(_stopwatch.finishCurrentTask('fetchUploadRefs'));
 
           if (refs.isEmpty) {
@@ -130,9 +131,9 @@ class Clone {
 
   Future _cleanup() {
     return FileOps.listFiles(_options.root).then((entries) {
-      return Future.forEach(entries, (chrome.Entry entry) {
+      return Future.forEach(entries, (Entry entry) {
         if (entry.isDirectory) {
-          return (entry as chrome.DirectoryEntry).removeRecursively();
+          return (entry as DirectoryEntry).removeRecursively();
         } else {
           return entry.remove();
         }
@@ -140,21 +141,22 @@ class Clone {
     });
   }
 
-  Future _createCurrentTreeFromPack(chrome.DirectoryEntry dir, ObjectStore store,
-      String headSha) {
+  Future _createCurrentTreeFromPack(
+      DirectoryEntry dir, ObjectStore store, String headSha) {
     return store.retrieveObject(headSha, ObjectTypes.COMMIT_STR).then((commit) {
       return ObjectUtils.expandTree(dir, store, commit.treeSha);
     });
   }
 
-  Future _checkDirectory(chrome.DirectoryEntry dir, ObjectStore store,
-                         [bool uninitializedOk = false]) {
+  Future _checkDirectory(DirectoryEntry dir, ObjectStore store,
+      [bool uninitializedOk = false]) {
     return FileOps.listFiles(dir).then((List entries) {
       if (entries.length == 0 && uninitializedOk) {
         return null;
       } else if (entries.length == 0) {
         throw new GitException(GitErrorConstants.GIT_CLONE_DIR_NOT_INITIALIZED);
-      } else if (entries.length != 1 || entries.first.isFile ||
+      } else if (entries.length != 1 ||
+          entries.first.isFile ||
           entries.first.name != '.git') {
         throw new GitException(GitErrorConstants.GIT_CLONE_DIR_NOT_EMPTY);
       } else {
@@ -166,7 +168,8 @@ class Clone {
               return store.objectDir.getDirectory('pack').then((packDir) {
                 return FileOps.listFiles(packDir).then((entries) {
                   if (entries.length > 0) {
-                    throw new GitException(GitErrorConstants.GIT_CLONE_DIR_IN_USE);
+                    throw new GitException(
+                        GitErrorConstants.GIT_CLONE_DIR_IN_USE);
                   } else {
                     return null;
                   }
@@ -179,8 +182,7 @@ class Clone {
     });
   }
 
-  Future<chrome.Entry> _createInitialConfig(String shallow,
-      GitRef localHeadRef) {
+  Future<Entry> _createInitialConfig(String shallow, GitRef localHeadRef) {
     Config config = _options.store.config;
     config.url = _options.repoUrl;
     config.time = new DateTime.now();
@@ -190,44 +192,48 @@ class Clone {
     }
 
     if (localHeadRef != null) {
-      config.remoteHeads[localHeadRef.name]= localHeadRef.sha;
+      config.remoteHeads[localHeadRef.name] = localHeadRef.sha;
     }
     return _options.store.writeConfig();
   }
 
-  Future _processClone(chrome.DirectoryEntry gitDir, GitRef localHeadRef,
-      HttpFetcher fetcher) {
+  Future _processClone(
+      DirectoryEntry gitDir, GitRef localHeadRef, HttpFetcher fetcher) {
     return _createHeadAndRef(gitDir, localHeadRef).then((_) {
       return _callMethod(
-          fetcher.fetchRef,
-          [[localHeadRef.sha],
-           null,
-           null,
-           _options.depth,
-           null,
-           nopFunction,
-           nopFunction,
-           _cancel], 'create HEAD').then((PackParseResult result) {
-
-        return _callMethod(Pack.createPackFiles, [store, result],
-            'createPackFiles').then((_) {
-
+              fetcher.fetchRef,
+              [
+                [localHeadRef.sha],
+                null,
+                null,
+                _options.depth,
+                null,
+                nopFunction,
+                nopFunction,
+                _cancel
+              ],
+              'create HEAD')
+          .then((PackParseResult result) {
+        return _callMethod(
+                Pack.createPackFiles, [store, result], 'createPackFiles')
+            .then((_) {
           return _callMethod(_createCurrentTreeFromPack,
-                             [root, store, localHeadRef.sha]
-                           , 'createCurrentTreeFromPack').then((_) {
-            return _createInitialConfig(result.shallow, localHeadRef).then((_) {
-            });
+                  [root, store, localHeadRef.sha], 'createCurrentTreeFromPack')
+              .then((_) {
+            return _createInitialConfig(result.shallow, localHeadRef)
+                .then((_) {});
           });
         });
       });
     });
   }
 
-  Future _createHeadAndRef(chrome.DirectoryEntry gitDir, GitRef localHeadRef) {
-    return FileOps.createFileWithContent(gitDir, "HEAD",
-        "ref: ${localHeadRef.name}\n", "Text").then((_) {
-      return FileOps.createFileWithContent(gitDir, localHeadRef.name,
-          localHeadRef.sha, "Text");
+  Future _createHeadAndRef(DirectoryEntry gitDir, GitRef localHeadRef) {
+    return FileOps.createFileWithContent(
+            gitDir, "HEAD", "ref: ${localHeadRef.name}\n", "Text")
+        .then((_) {
+      return FileOps.createFileWithContent(
+          gitDir, localHeadRef.name, localHeadRef.sha, "Text");
     });
   }
 
@@ -255,7 +261,6 @@ class Clone {
 }
 
 class CloneCancel extends Cancel {
-
   CloneCancel() : super(false);
 
   void performCancel() {

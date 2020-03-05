@@ -4,15 +4,13 @@
 
 library git_fetch_test;
 
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 /**
  * TODO(grv) : Add tests and checks.
  */
 defineTests() {
   group('git.commands.fetch', () {
-    test('todo', () {
-
-    });
+    test('todo', () {});
   });
 }

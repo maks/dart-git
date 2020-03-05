@@ -2,26 +2,24 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-library spark.git_objectstore_test;
+import 'package:test/test.dart';
 
 import 'dart:async';
 
-import '../../lib/files_mock.dart';
-import '../../lib/git/file_operations.dart';
-//import '../../lib/git/object.dart';
-import '../../lib/git/objectstore.dart';
-import '../../lib/utils.dart';
+import 'files_mock.dart';
+import '../lib/src/file_operations.dart';
+import '../lib/src/objectstore.dart';
 
 final String GIT_ROOT_DIRECTORY_PATH = 'test/data/git';
 
 Future getGitDirectory() {
-  return getPackageDirectoryEntry().then((chrome.DirectoryEntry dir) {
+  return getPackageDirectoryEntry().then((DirectoryEntry dir) {
     return dir.getDirectory(GIT_ROOT_DIRECTORY_PATH);
   });
 }
 
 Future copyTestGitDirectory(MockFileSystem fs) {
-  return getGitDirectory().then((chrome.DirectoryEntry gitDir) {
+  return getGitDirectory().then((DirectoryEntry gitDir) {
     return fs.root.createDirectory('.git').then((dst) {
       return FileOps.copyDirectory(gitDir, dst);
     });
@@ -29,7 +27,7 @@ Future copyTestGitDirectory(MockFileSystem fs) {
 }
 
 Future<ObjectStore> initStore(fs) {
-  return copyTestGitDirectory(fs).then((chrome.DirectoryEntry root) {
+  return copyTestGitDirectory(fs).then((DirectoryEntry root) {
     ObjectStore store = new ObjectStore(fs.root);
     return store.load().then((_) => store);
   });

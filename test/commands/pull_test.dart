@@ -2,14 +2,12 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-library git_pull_test;
+import 'package:test/test.dart';
 
-import 'package:unittest/unittest.dart';
-
-import '../../../lib/git/commands/clone.dart';
-import '../../../lib/git/commands/pull.dart';
-import '../../../lib/git/exception.dart';
-import '../../../lib/git/objectstore.dart';
+import '../../lib/src/commands/clone.dart';
+import '../../lib/src/commands/pull.dart';
+import '../../lib/src/exception.dart';
+import '../../lib/src/objectstore.dart';
 import 'utils.dart';
 
 defineTests() {
@@ -36,8 +34,8 @@ defineTests() {
         store = new ObjectStore(location.entry);
         store.init();
       }).then((_) {
-        Pull pull = new Pull(
-            new GitOptions(root: clone.root, store: clone.store));
+        Pull pull =
+            new Pull(new GitOptions(root: clone.root, store: clone.store));
         return pull.pull().then((_) {
           throw 'Expected a git_branch_up_to_date exception';
         }).catchError((GitException e) {

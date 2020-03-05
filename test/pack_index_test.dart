@@ -4,23 +4,25 @@
 
 library git_pack_index_test;
 
+import 'package:test/test.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
-import '../../lib/utils.dart';
-import '../../lib/git/object.dart';
-import '../../lib/git/pack.dart';
-import '../../lib/git/pack_index.dart';
+import 'package:dart_git/src/entry.dart';
+
+import '../lib/src/object.dart';
+import '../lib/src/pack.dart';
+import '../lib/src/pack_index.dart';
 
 final String PACK_FILE_PATH = 'test/data/pack_test.pack';
 final String PACK_INDEX_FILE_PATH = 'test/data/pack_index_test.idx';
 
 Future<Pack> initPack() {
-  return getPackageDirectoryEntry().then((chrome.DirectoryEntry dir) {
+  return getPackageDirectoryEntry().then((DirectoryEntry dir) {
     return dir.getFile(PACK_FILE_PATH);
-  }).then((chrome.ChromeFileEntry entry) {
+  }).then((ChromeFileEntry entry) {
     return entry.readBytes();
-  }).then((chrome.ArrayBuffer binaryData) {
+  }).then((ArrayBuffer binaryData) {
     Uint8List data = new Uint8List.fromList(binaryData.getBytes());
     Pack pack = new Pack(data);
     return pack.parseAll().then((_) => pack);
@@ -28,11 +30,11 @@ Future<Pack> initPack() {
 }
 
 Future<PackIndex> initPackIndex() {
-  return getPackageDirectoryEntry().then((chrome.DirectoryEntry dir) {
+  return getPackageDirectoryEntry().then((DirectoryEntry dir) {
     return dir.getFile(PACK_INDEX_FILE_PATH);
-  }).then((chrome.ChromeFileEntry entry) {
+  }).then((ChromeFileEntry entry) {
     return entry.readBytes();
-  }).then((chrome.ArrayBuffer binaryData) {
+  }).then((ArrayBuffer binaryData) {
     return new PackIndex(binaryData.getBytes());
   });
 }
@@ -42,11 +44,11 @@ defineTests() {
     test('packIndexParse', () {
       Pack pack;
       return initPack().then((Pack _pack) {
-        logMessage('got pack');
+        print('got pack');
         pack = _pack;
         return initPackIndex();
       }).then((PackIndex packIdx) {
-        logMessage('got packIdx');
+        print('got packIdx');
         pack.objects.forEach((PackedObject obj) {
           // asserts the object found by index has correct offset.
           expect(obj.offset, packIdx.getObjectOffset(obj.shaBytes));

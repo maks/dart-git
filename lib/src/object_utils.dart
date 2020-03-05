@@ -6,8 +6,7 @@ library git.objects.utils;
 
 import 'dart:async';
 import 'dart:core';
-
-import 'package:chrome/chrome_app.dart' as chrome;
+import 'package:dart_git/src/entry.dart';
 
 import 'file_operations.dart';
 import 'commands/index.dart';
@@ -18,7 +17,6 @@ import 'objectstore.dart';
  *
  */
 abstract class ObjectTypes {
-
   static const String BLOB_STR = "blob";
   static const String TREE_STR = "tree";
   static const String COMMIT_STR = "commit";
@@ -34,7 +32,7 @@ abstract class ObjectTypes {
   static const int REF_DELTA = 7;
 
   static String getTypeString(int type) {
-    switch(type) {
+    switch (type) {
       case COMMIT:
         return COMMIT_STR;
       case TREE:
@@ -53,7 +51,7 @@ abstract class ObjectTypes {
   }
 
   static int getType(String type) {
-    switch(type) {
+    switch (type) {
       case COMMIT_STR:
         return COMMIT;
       case TREE_STR:
@@ -80,19 +78,22 @@ abstract class ObjectUtils {
   /**
    * Expands a git blob object into a file and writes on disc.
    */
-  static Future<chrome.Entry> expandBlob(chrome.DirectoryEntry dir,
-      ObjectStore store, String fileName, String blobSha, String permission) {
-    return store.retrieveObject(blobSha, ObjectTypes.BLOB_STR).then(
-        (BlobObject blob) {
-      return FileOps.createFileWithContent(dir, fileName, blob.data,
-          ObjectTypes.BLOB_STR).then((chrome.Entry entry) {
+  static Future<Entry> expandBlob(DirectoryEntry dir, ObjectStore store,
+      String fileName, String blobSha, String permission) {
+    return store
+        .retrieveObject(blobSha, ObjectTypes.BLOB_STR)
+        .then((BlobObject blob) {
+      return FileOps.createFileWithContent(
+              dir, fileName, blob.data, ObjectTypes.BLOB_STR)
+          .then((Entry entry) {
         return entry.getMetadata().then((data) {
           FileStatus status = new FileStatus();
           status.path = entry.fullPath;
           status.sha = blobSha;
           status.headSha = blobSha;
           status.size = data.size;
-          status.modificationTime = data.modificationTime.millisecondsSinceEpoch;
+          status.modificationTime =
+              data.modificationTime.millisecondsSinceEpoch;
           status.permission = permission;
           store.index.createIndexForEntry(status);
         });
@@ -103,15 +104,15 @@ abstract class ObjectUtils {
   /**
    * Expand a git tree object into files and writes on disk.
    */
-  static Future expandTree(chrome.DirectoryEntry dir, ObjectStore store,
-      String treeSha) {
+  static Future expandTree(
+      DirectoryEntry dir, ObjectStore store, String treeSha) {
     return store.retrieveObject(treeSha, "Tree").then((GitObject tree) {
       return Future.forEach((tree as TreeObject).entries, (TreeEntry entry) {
         if (entry.isBlob) {
-          return expandBlob(dir, store, entry.name, entry.sha, entry.permission);
+          return expandBlob(
+              dir, store, entry.name, entry.sha, entry.permission);
         } else {
-          return dir.createDirectory(entry.name).then(
-              (chrome.DirectoryEntry newDir) {
+          return dir.createDirectory(entry.name).then((DirectoryEntry newDir) {
             return expandTree(newDir, store, entry.sha);
           });
         }

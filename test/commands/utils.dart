@@ -5,15 +5,11 @@
 /**
  * General utilities for testing the git library.
  */
-library git.commands.utils;
-
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:math' show Random;
 
-import '../../../lib/utils.dart';
-
-final String sampleRepoUrl = 'https://github.com/devoncarew/spark_git_test.dart.git';
+final String sampleRepoUrl = 'https://github.com/maks/sandbox.git';
 
 class GitLocation {
   String _name;

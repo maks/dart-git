@@ -7,7 +7,6 @@ library git.http_fetcher;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
-import 'dart:html';
 import 'dart:typed_data';
 
 import 'exception.dart';
@@ -32,8 +31,8 @@ class HttpFetcher {
 
   Map<String, GitRef> refs = {};
 
-  HttpFetcher(this.store, this.name, this.repoUrl, [this.username,
-      this.password]) {
+  HttpFetcher(this.store, this.name, this.repoUrl,
+      [this.username, this.password]) {
     url = _getUrl(repoUrl);
     urlOptions = _queryParams(repoUrl);
   }
@@ -46,14 +45,16 @@ class HttpFetcher {
 
   Future<List<GitRef>> fetchUploadRefs() => _fetchRefs('git-upload-pack');
 
-  Future pushRefs(List<GitRef> refPaths, List<int> packData, Function progress) {
+  Future pushRefs(
+      List<GitRef> refPaths, List<int> packData, Function progress) {
     Completer completer = new Completer();
     String url = _makeUri('/git-receive-pack', {});
     Blob body = _pushRequest(refPaths, packData);
 
     var xhr = getNewHttpRequest();
-    xhr.open("POST", url, async: true , user: username, password: password);
-    xhr.setRequestHeader('Content-Type', 'application/x-git-receive-pack-request');
+    xhr.open("POST", url, async: true, user: username, password: password);
+    xhr.setRequestHeader(
+        'Content-Type', 'application/x-git-receive-pack-request');
     xhr.onLoad.listen((event) {
       if (xhr.readyState == 4) {
         if (xhr.status == 200) {
@@ -69,7 +70,8 @@ class HttpFetcher {
         }
       }
     });
-    xhr.onError.listen((_) => completer.completeError(HttpGitException.fromXhr(xhr)));
+    xhr.onError
+        .listen((_) => completer.completeError(HttpGitException.fromXhr(xhr)));
     String bodySize = (body.size / 1024).toStringAsFixed(2);
     xhr.upload.onProgress.listen((event) {
       // TODO add progress.
@@ -83,9 +85,15 @@ class HttpFetcher {
     return completer.future;
   }
 
-  Future<PackParseResult> fetchRef(List<String> wantRefs,
-      List<String> haveRefs, String shallow, int depth, List<String> moreHaves,
-      noCommon, Function progress, [Cancel cancel]) {
+  Future<PackParseResult> fetchRef(
+      List<String> wantRefs,
+      List<String> haveRefs,
+      String shallow,
+      int depth,
+      List<String> moreHaves,
+      noCommon,
+      Function progress,
+      [Cancel cancel]) {
     Completer completer = new Completer();
     String url = _makeUri('/git-upload-pack', {});
     String body = _refWantRequst(wantRefs, haveRefs, shallow, depth, moreHaves);
@@ -94,14 +102,15 @@ class HttpFetcher {
     //TODO add progress.
     Function packProgress, receiveProgress;
 
-    xhr.open("POST", url, async: true , user: username , password: password);
+    xhr.open("POST", url, async: true, user: username, password: password);
     xhr.responseType = 'arraybuffer';
-    xhr.setRequestHeader('Content-Type', 'application/x-git-upload-pack-request');
+    xhr.setRequestHeader(
+        'Content-Type', 'application/x-git-upload-pack-request');
 
     xhr.onLoad.listen((event) {
       ByteBuffer buffer = xhr.response;
       Uint8List data = new Uint8List.view(buffer, 4, 3);
-      if (haveRefs != null && UTF8.decode(data.toList()) == "NAK") {
+      if (haveRefs != null && utf8.decode(data.toList()) == "NAK") {
         if (moreHaves.isNotEmpty) {
           //TODO handle case of more haves.
           //store.getCommitGraph(headShas, COMMIT_LIMIT).then((obj) {
@@ -111,7 +120,6 @@ class HttpFetcher {
         }
         completer.completeError("error in git pull");
       } else {
-
         if (packProgress != null) {
           packProgress({'pct': 0, 'msg': "Parsing pack data"});
         }
@@ -119,7 +127,7 @@ class HttpFetcher {
         UploadPackParser parser = getUploadPackParser(cancel);
         return parser.parse(buffer, store, packProgress).then(
             (PackParseResult obj) {
-           completer.complete(obj);
+          completer.complete(obj);
         }, onError: (e) {
           completer.completeError(e);
         });
@@ -141,8 +149,8 @@ class HttpFetcher {
   /*
    * Get a new instance of uploadPackParser. Exposed for tests to inject fake parser.
    */
-  UploadPackParser getUploadPackParser([Cancel cancel])
-      => new UploadPackParser(cancel);
+  UploadPackParser getUploadPackParser([Cancel cancel]) =>
+      new UploadPackParser(cancel);
 
   /*
    * Get a new instance of HttpRequest. Exposed for tests to inject fake xhr.
@@ -173,7 +181,7 @@ class HttpFetcher {
   Future<String> _doGet(String url) {
     Completer completer = new Completer();
     var xhr = getNewHttpRequest();
-    xhr.open("GET", url, async: true , user: username , password: password );
+    xhr.open("GET", url, async: true, user: username, password: password);
 
     xhr.onLoad.listen((event) {
       if (xhr.readyState == 4) {
@@ -234,13 +242,13 @@ class HttpFetcher {
     throw "to be implemented.";
   }
 
-  String _getUrl(String url) => repoUrl.replaceAll("\?.*", "").replaceAll(
-      "\/\$", "");
+  String _getUrl(String url) =>
+      repoUrl.replaceAll("\?.*", "").replaceAll("\/\$", "");
 
   Map _parseDiscovery(String data) {
     List<String> lines = data.split("\n");
     List<GitRef> refs = [];
-    Map result = {"refs" : refs};
+    Map result = {"refs": refs};
 
     for (int i = 1; i < lines.length - 1; ++i) {
       String currentLine = lines[i];
@@ -286,8 +294,8 @@ class HttpFetcher {
   /**
    * Constructs a want request from the server.
    */
-  String _refWantRequst(List<String> wantRefs, List<String> haveRefs, String shallow,
-      int depth, List<String> moreHaves) {
+  String _refWantRequst(List<String> wantRefs, List<String> haveRefs,
+      String shallow, int depth, List<String> moreHaves) {
     StringBuffer request = new StringBuffer("0067want ${wantRefs[0]} ");
     request.write("multi_ack_detailed side-band-64k thin-pack ofs-delta\n");
     for (int i = 1; i < wantRefs.length; ++i) {
@@ -321,7 +329,7 @@ class HttpFetcher {
   _addRef(GitRef ref) {
     String type;
     String name;
-    if (ref.name.length > 5 && ref.name.substring(0,5) == "refs/") {
+    if (ref.name.length > 5 && ref.name.substring(0, 5) == "refs/") {
       type = ref.name.split("/")[1];
       name = this.name + "/" + ref.name.split("/")[2];
     } else {
@@ -346,8 +354,9 @@ class HttpGitException extends GitException {
   int status;
   String statusText;
 
-  HttpGitException(this.status, this.statusText, [String errorCode,
-      String message, bool canIgnore]) : super(errorCode, message, canIgnore);
+  HttpGitException(this.status, this.statusText,
+      [String errorCode, String message, bool canIgnore])
+      : super(errorCode, message, canIgnore);
 
   static fromXhr(HttpRequest request) {
     String errorCode;
@@ -355,7 +364,7 @@ class HttpGitException extends GitException {
     if (request.status == 401) {
       errorCode = GitErrorConstants.GIT_AUTH_REQUIRED;
     } else if (request.status == 404) {
-        errorCode = GitErrorConstants.GIT_HTTP_NOT_FOUND_ERROR;
+      errorCode = GitErrorConstants.GIT_HTTP_NOT_FOUND_ERROR;
     } else if (request.status == 403) {
       errorCode = GitErrorConstants.GIT_HTTP_FORBIDDEN_ERROR;
     } else if (request.status == 0) {
@@ -364,8 +373,8 @@ class HttpGitException extends GitException {
       errorCode = GitErrorConstants.GIT_HTTP_ERROR;
     }
 
-    return new HttpGitException(request.status, request.statusText, errorCode,
-        "", false);
+    return new HttpGitException(
+        request.status, request.statusText, errorCode, "", false);
   }
 
   /**

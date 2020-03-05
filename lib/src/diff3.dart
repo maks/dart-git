@@ -4,7 +4,7 @@
 
 library git.diff3;
 
-import "package:diff/diff.dart" as diff3;
+import "package:diff_match_patch" as diff3;
 
 /**
  * Wrapper for the diff3.dart library.
@@ -12,8 +12,8 @@ import "package:diff/diff.dart" as diff3;
 class Diff3 {
   static Diff3Result diff(String our, String base, String their) {
     diff3.Diff3DigResult diff3DigResult = diff3.diff3Dig(our, base, their);
-    return new Diff3Result(diff3DigResult.text.join("\n"),
-        diff3DigResult.conflict);
+    return new Diff3Result(
+        diff3DigResult.text.join("\n"), diff3DigResult.conflict);
   }
 }
 

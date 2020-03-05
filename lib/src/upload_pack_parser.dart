@@ -7,7 +7,6 @@ library git.upload_pack_parser;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
-import 'dart:html';
 import 'dart:typed_data';
 
 import 'file_operations.dart';
@@ -29,11 +28,10 @@ class PackParseResult {
   final List<String> common;
   final List<int> data;
 
-  PackParseResult(this.objects,  this.data, this.shallow, this.common);
+  PackParseResult(this.objects, this.data, this.shallow, this.common);
 }
 
 class UploadPackParser {
-
   int _offset = 0;
   List<PackedObject> objects = null;
   List<int> data;
@@ -55,14 +53,14 @@ class UploadPackParser {
 
     String pktLineStr = _getPktLine(pktLine);
     String shallow;
-    while (pktLineStr.length > 6 && (pktLineStr.substring(0,7) == "shallow")) {
+    while (pktLineStr.length > 6 && (pktLineStr.substring(0, 7) == "shallow")) {
       pktLine = _nextPktLine(true);
       shallow = pktLineStr.substring(8);
       pktLineStr = _getPktLine(pktLine);
     }
 
-    while (pktLineStr == "NAK\n" || (pktLineStr.length > 3
-        && pktLineStr.substring(0,3) == "ACK")) {
+    while (pktLineStr == "NAK\n" ||
+        (pktLineStr.length > 3 && pktLineStr.substring(0, 3) == "ACK")) {
       RegExp ackRegex = new RegExp(r"ACK ([0-9a-fA-F]{40}) common");
       Iterable<Match> matches = ackRegex.allMatches(pktLineStr);
       if (matches.isNotEmpty) {
@@ -84,8 +82,8 @@ class UploadPackParser {
       // sideband format. "2" indicates progress messages, "1" pack data
       switch (pktLineType) {
         case 1:
-          packDataLines.add(data.sublist(pktLine.offset + 1,
-              pktLine.offset + pktLine.length));
+          packDataLines.add(data.sublist(
+              pktLine.offset + 1, pktLine.offset + pktLine.length));
           break;
         case 2:
           break;
@@ -108,10 +106,10 @@ class UploadPackParser {
   }
 
   // a pkt-line is defined in http://git-scm.com/gitserver.txt
-  PktLine _nextPktLine([bool isShallow=false]) {
+  PktLine _nextPktLine([bool isShallow = false]) {
     PktLine pktLine = null;
     int length;
-    length = int.parse(UTF8.decode(_peek(4)), radix:16);
+    length = int.parse(utf8.decode(_peek(4)), radix: 16);
     _advance(4);
     if (length == 0) {
       if (isShallow) {
@@ -125,8 +123,8 @@ class UploadPackParser {
   }
 
   String _getPktLine(PktLine pktLine) {
-    String pktString =UTF8.decode(data.sublist(pktLine.offset,
-        pktLine.offset + pktLine.length));
+    String pktString = utf8
+        .decode(data.sublist(pktLine.offset, pktLine.offset + pktLine.length));
     return pktString;
   }
 

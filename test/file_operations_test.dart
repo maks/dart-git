@@ -2,16 +2,14 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-library git_file_operations_test;
+import 'package:test/test.dart';
 
 import 'dart:convert';
 import 'dart:html';
 import 'dart:typed_data';
 
-import 'package:unittest/unittest.dart';
-
-import '../../lib/files_mock.dart';
-import '../../lib/git/file_operations.dart';
+import 'files_mock.dart';
+import '../lib/src/file_operations.dart';
 
 const String FILE_CONTENT = 'This is a test file content.';
 const String BLOB_STRING_1 = 'First part of the blob.';
@@ -30,8 +28,9 @@ defineTests() {
 
     test('Create a file whose parent does not exist.', () {
       MockFileSystem fs = new MockFileSystem();
-      return FileOps.createFileWithContent(fs.root, 'test/a/b.txt',
-          FILE_CONTENT, 'Text').then((ChromeFileEntry entry) {
+      return FileOps.createFileWithContent(
+              fs.root, 'test/a/b.txt', FILE_CONTENT, 'Text')
+          .then((ChromeFileEntry entry) {
         expect(fs.getEntry('test'), isNotNull);
         expect(fs.getEntry('test/a'), isNotNull);
         expect(entry.fullPath, '/root/test/a/b.txt');
@@ -57,7 +56,7 @@ defineTests() {
       blobParts.add(BLOB_STRING_2);
       Blob blob = new Blob(blobParts, 'ArrayBuffer');
       return FileOps.readBlob(blob, 'ArrayBuffer').then((Uint8List result) {
-        expect(UTF8.decode(result.toList()), BLOB_STRING_1 + BLOB_STRING_2);
+        expect(utf8.decode(result.toList()), BLOB_STRING_1 + BLOB_STRING_2);
       });
     });
   });
