@@ -6,6 +6,8 @@ library git.commands.branch;
 
 import 'dart:async';
 
+import 'package:chrome/chrome_app.dart' as chrome;
+
 import 'fetch.dart';
 import '../exception.dart';
 import '../objectstore.dart';
@@ -15,6 +17,7 @@ import '../options.dart';
  * This class implements the git branch command.
  */
 class Branch {
+
   /* A valid branch name must :
    * 1) must not contain \ or ? or * or [] or ASCII control
    *    characters.
@@ -24,17 +27,15 @@ class Branch {
    * 5) Do not contain a sequence '@{'
    * 6) cannot end with '.lock'.
   */
-  static const BRANCH_PATTERN =
-      r"^(?!build-|/|.*([/.][.]|//|@\\{|\\\\))[^\040\177 ~^:?*\\[]+$";
+  static const BRANCH_PATTERN
+      = r"^(?!build-|/|.*([/.][.]|//|@\\{|\\\\))[^\040\177 ~^:?*\\[]+$";
 
   static final branchRegex = new RegExp(BRANCH_PATTERN);
 
   static bool _verifyBranchName(String name) {
-    return (name.isNotEmpty &&
-        branchRegex.matchAsPrefix(name) != null &&
-        !name.endsWith('.') &&
-        !name.endsWith('.lock') &&
-        !name.endsWith('/'));
+    int length = name.length;
+    return (name.isNotEmpty && branchRegex.matchAsPrefix(name) != null &&
+        !name.endsWith('.') && !name.endsWith('.lock') && !name.endsWith('/'));
   }
 
   /**
@@ -48,7 +49,7 @@ class Branch {
     if (!_verifyBranchName(branchName)) {
       return new Future.error(
           new GitException(GitErrorConstants.GIT_INVALID_BRANCH_NAME));
-    }
+     }
 
     return store.getHeadForRef('refs/heads/' + branchName).then((_) {
       return new Future.error(

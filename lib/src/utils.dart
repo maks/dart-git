@@ -7,6 +7,7 @@ library git.utils;
 import 'dart:async';
 import 'dart:core';
 
+import 'package:chrome/chrome_app.dart' as chrome;
 import 'package:logging/logging.dart';
 
 import 'constants.dart';
@@ -27,7 +28,7 @@ bool isGitUri(String uri) => _gitUrlRegExp.hasMatch(uri);
 List<int> shaToBytes(String sha) {
   List<int> bytes = [];
   for (var i = 0; i < sha.length; i += 2) {
-    bytes.add(int.parse('0x' + sha[i] + sha[i + 1]));
+    bytes.add(int.parse('0x' + sha[i] + sha[i+1]));
   }
   return bytes;
 }
@@ -103,7 +104,8 @@ Future cleanWorkingDir(chrome.DirectoryEntry root) {
  */
 String getCurrentTimeAsString() {
   DateTime now = new DateTime.now();
-  String dateString = (now.millisecondsSinceEpoch / 1000).floor().toString();
+  String dateString =
+      (now.millisecondsSinceEpoch / 1000).floor().toString();
   int offset = (now.timeZoneOffset.inHours).floor();
   int absOffset = offset.abs().floor();
   String offsetStr = ' ' + (offset < 0 ? '-' : '+');
@@ -124,6 +126,7 @@ void nopFunction() => null;
  * is cancelled.
  */
 abstract class Cancel {
+
   bool _cancel = false;
   String _errorCode;
   bool canIgnore;
@@ -142,4 +145,43 @@ abstract class Cancel {
   }
 
   void performCancel();
+}
+
+/**
+ * Returns a Future that completes after the next tick.
+ */
+Future nextTick() => new Future.delayed(Duration.ZERO);
+
+class FutureHelper {
+  /**
+   * Perform an async operation for each element of the iterable, in turn. It
+   * refreshes the UI after each iteraton.
+   *
+   * Runs [f] for each element in [input] in order, moving to the next element
+   * only when the [Future] returned by [f] completes. Returns a [Future] that
+   * completes when all elements have been processed.
+   *
+   * The return values of all [Future]s are discarded. Any errors will cause the
+   * iteration to stop and will be piped through the returned [Future].
+   */
+  static Future forEachNonBlockingUI(Iterable input, Future f(element)) {
+    Completer doneSignal = new Completer();
+    Iterator iterator = input.iterator;
+    void nextElement(_) {
+      if (iterator.moveNext()) {
+        nextTick().then((_) {
+          try {
+            f(iterator.current)
+             .then(nextElement,  onError: (e) => doneSignal.completeError(e));
+          } catch (e) {
+            doneSignal.completeError(e);
+          }
+        });
+      } else {
+        doneSignal.complete(null);
+      }
+    }
+    nextElement(null);
+    return doneSignal.future;
+  }
 }

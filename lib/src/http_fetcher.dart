@@ -91,7 +91,7 @@ class HttpFetcher {
     String body = _refWantRequst(wantRefs, haveRefs, shallow, depth, moreHaves);
     var xhr = getNewHttpRequest();
 
-    // TODO: add progress.
+    //TODO add progress.
     Function packProgress, receiveProgress;
 
     xhr.open("POST", url, async: true , user: username , password: password);
@@ -99,10 +99,11 @@ class HttpFetcher {
     xhr.setRequestHeader('Content-Type', 'application/x-git-upload-pack-request');
 
     xhr.onLoad.listen((event) {
-      Uint8List data = _createUint8List(xhr.response);
-      if (haveRefs != null && UTF8.decode(data.sublist(4, 7)) == "NAK") {
+      ByteBuffer buffer = xhr.response;
+      Uint8List data = new Uint8List.view(buffer, 4, 3);
+      if (haveRefs != null && UTF8.decode(data.toList()) == "NAK") {
         if (moreHaves.isNotEmpty) {
-          // TODO: handle case of more haves.
+          //TODO handle case of more haves.
           //store.getCommitGraph(headShas, COMMIT_LIMIT).then((obj) {
           //});
         } else if (noCommon) {
@@ -110,12 +111,13 @@ class HttpFetcher {
         }
         completer.completeError("error in git pull");
       } else {
+
         if (packProgress != null) {
           packProgress({'pct': 0, 'msg': "Parsing pack data"});
         }
 
         UploadPackParser parser = getUploadPackParser(cancel);
-        return parser.parse(data, store, packProgress).then(
+        return parser.parse(buffer, store, packProgress).then(
             (PackParseResult obj) {
            completer.complete(obj);
         }, onError: (e) {
@@ -341,8 +343,8 @@ class HttpFetcher {
 }
 
 class HttpGitException extends GitException {
-  final int status;
-  final String statusText;
+  int status;
+  String statusText;
 
   HttpGitException(this.status, this.statusText, [String errorCode,
       String message, bool canIgnore]) : super(errorCode, message, canIgnore);
@@ -363,7 +365,7 @@ class HttpGitException extends GitException {
     }
 
     return new HttpGitException(request.status, request.statusText, errorCode,
-        '${request.status} ${request.statusText}');
+        "", false);
   }
 
   /**
@@ -372,19 +374,4 @@ class HttpGitException extends GitException {
   bool get needsAuth => status == 401;
 
   String toString() => '${status} ${statusText}';
-}
-
-/**
- * Expect either a [Uint8List] or a [ByteBuffer]. Return a [Uint8List].
- */
-Uint8List _createUint8List(dynamic response) {
-  if (response is Uint8List) {
-    return response;
-  }
-
-  if (response is ByteBuffer) {
-    return new Uint8List.view(response);
-  }
-
-  throw 'unexpected type for _createUint8List(): ${response.runtimeType}';
 }

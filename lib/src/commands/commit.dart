@@ -6,6 +6,7 @@ library git.commands.commit;
 
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:chrome/chrome_app.dart' as chrome;
 
 import 'constants.dart';
 import 'ignore.dart';
@@ -24,12 +25,14 @@ import '../utils.dart';
  * This class implments the git commit command.
  */
 class Commit {
+
   /**
    * Walks over all the files in the working tree. Returns sha of the
    * working tree.
    */
-  static Future<String> walkFiles(
-      chrome.DirectoryEntry root, ObjectStore store) {
+  static Future<String> walkFiles(chrome.DirectoryEntry root,
+      ObjectStore store) {
+
     return FileOps.listFiles(root).then((List<chrome.ChromeFileEntry> entries) {
       if (entries.isEmpty) {
         return null;
@@ -45,8 +48,8 @@ class Commit {
         if (entry.isDirectory) {
           return walkFiles(entry, store).then((String sha) {
             if (sha != null) {
-              treeEntries.add(new TreeEntry(
-                  entry.name, shaToBytes(sha), false, Permissions.DIRECTORY));
+              treeEntries.add(new TreeEntry(entry.name, shaToBytes(sha),
+                  false, Permissions.DIRECTORY));
             }
           });
         } else {
@@ -56,8 +59,8 @@ class Commit {
             return new Future.value();
           }
 
-          return Status.updateAndGetStatus(store, entry)
-              .then((FileStatus status) {
+          return Status.updateAndGetStatus(store, entry).then(
+              (FileStatus status) {
             if (status.type != FileStatusType.UNTRACKED) {
               store.index.updateIndexForFile(status);
               status = store.index.getStatusForEntry(entry);
@@ -68,17 +71,18 @@ class Commit {
                   return store.writeRawObject(
                       'blob', new Uint8List.fromList(buf.getBytes()));
                 }).then((String sha) {
-                  treeEntries.add(new TreeEntry(
-                      entry.name, shaToBytes(sha), true, status.permission));
+                  treeEntries.add(new TreeEntry(entry.name, shaToBytes(sha),
+                      true, status.permission));
                 });
               } else if (status.type == FileStatusType.COMMITTED) {
-                treeEntries.add(new TreeEntry(entry.name,
-                    shaToBytes(status.sha), true, status.permission));
+                treeEntries.add(new TreeEntry(entry.name, shaToBytes(status.sha),
+                    true, status.permission));
               }
             }
           });
         }
       }).then((_) {
+
         // Either the folder is empty, or untracked.
         if (treeEntries.isEmpty) {
           return null;
@@ -115,48 +119,43 @@ class Commit {
     });
   }
 
-  static Future<String> createCommit(GitOptions options, List<String> parents,
-      String treeSha, String refName) {
+  static Future createCommit(GitOptions options, String parent, String treeSha,
+      String refName) {
     ObjectStore store = options.store;
     String dateString = getCurrentTimeAsString();
     StringBuffer commitContent = new StringBuffer();
     commitContent.write('tree ${treeSha}\n');
-    parents.forEach((String parent) {
-      if (parent != null && parent.isNotEmpty) {
-        commitContent.write('parent ${parent}');
-        if (!parent.endsWith('\n')) {
-          commitContent.write('\n');
-        }
+    if (parent != null && parent.length > 0) {
+      commitContent.write('parent ${parent}');
+      if (parent[parent.length -1] != '\n') {
+        commitContent.write('\n');
       }
-    });
+    }
 
     String name = options.name == null ? "" : options.name;
     String email = options.email == null ? "" : options.email;
-    String commitMsg =
-        options.commitMessage == null ? "" : options.commitMessage;
+    String commitMsg = options.commitMessage == null ? ""
+        : options.commitMessage;
     commitContent.write('author ${name} <${email}> ${dateString}\n');
     commitContent.write('committer ${name} <${email}> ${dateString}');
     commitContent.write('\n\n${commitMsg}\n');
 
-    return store.writeRawObject(
-        ObjectTypes.COMMIT_STR, commitContent.toString());
+    return store.writeRawObject(ObjectTypes.COMMIT_STR,
+        commitContent.toString()).then((String commitSha) {
+      return FileOps.createFileWithContent(options.root, '.git/${refName}',
+          commitSha + '\n', 'Text').then((_) {
+        return store.writeConfig().then((_) => commitSha);
+      });
+    });
   }
 
-  static Future _createCommitFromWorkingTree(
-      GitOptions options, String parent, String refName) {
+  static Future _createCommitFromWorkingTree(GitOptions options, String parent,
+      String refName) {
     ObjectStore store = options.store;
     return walkFiles(options.root, store).then((String sha) {
       // update the index.
       return store.index.onCommit().then((_) {
-        return createCommit(
-                options, parent != null ? [parent] : [], sha, refName)
-            .then((commitSha) {
-          return FileOps.createFileWithContent(
-                  options.root, '.git/${refName}', commitSha + '\n', 'Text')
-              .then((_) {
-            return store.writeConfig().then((_) => commitSha);
-          });
-        });
+        return createCommit(options, parent, sha, refName);
       });
     });
   }

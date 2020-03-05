@@ -27,7 +27,7 @@ class DiffEntry {
   DiffEntry(this.oldEntry, this.newEntry, this.type,  [String path]) {
 
     if (path == null) {
-      this.path = oldEntry == null ? newEntry.name : oldEntry.name;
+      path = oldEntry == null ? newEntry.name : oldEntry.name;
     } else {
       this.path = path;
     }
