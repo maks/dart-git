@@ -248,9 +248,6 @@ abstract class _MockEntry implements Entry {
   String get _path => _parent == null ? '/${name}' : '${_parent._path}/${name}';
 
   int get _size;
-
-  // Added to satisfy the analyzer.
-  JsObject blink_jsObject;
 }
 
 class _MockFileEntry extends _MockEntry implements FileEntry, ChromeFileEntry {

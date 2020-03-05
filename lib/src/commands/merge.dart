@@ -5,7 +5,6 @@
 library git.commands.merge;
 
 import 'dart:async';
-import 'dart:typed_data';
 
 import '../diff3.dart';
 import '../object.dart';
@@ -27,7 +26,6 @@ class MergeItem {
  * Implements tree diffs and merging of git trees.
  */
 class Merge {
-
   static bool shasEqual(List<int> sha1, List<int> sha2) {
     for (var i = 0; i < sha1.length; ++i) {
       if (sha1[i] != sha2[i]) return false;
@@ -35,15 +33,11 @@ class Merge {
     return true;
   }
 
-  static dynamic _diff3(blob1, blob2, blob3) {
-    return new Uint8List(0);
-  }
-
   static Future<String> mergeTrees(ObjectStore store, TreeObject ourTree,
       TreeObject baseTree, TreeObject theirTree) {
     List<TreeEntry> finalTree = [];
     List merges = [];
-    List indices = [0,0,0];
+    List indices = [0, 0, 0];
     List<MergeItem> conflicts = [];
 
     // base tree can be null if we're merging a sub tree from ours and theirs
@@ -57,18 +51,22 @@ class Merge {
     theirTree.sortEntries();
     baseTree.sortEntries();
 
-    List<List<TreeEntry>> allTrees = [ourTree.entries, baseTree.entries,
-        theirTree.entries];
+    List<List<TreeEntry>> allTrees = [
+      ourTree.entries,
+      baseTree.entries,
+      theirTree.entries
+    ];
 
     while (true) {
       TreeEntry next = null;
       int nextX = 0;
       for (int i = 0; i < allTrees.length; ++i) {
         List treeEntries = allTrees[i];
-        TreeEntry top = (indices[i] < treeEntries.length) ?
-            treeEntries[indices[i]] : null;
+        TreeEntry top =
+            (indices[i] < treeEntries.length) ? treeEntries[indices[i]] : null;
 
-        if (next == null || (top != null && top.name.compareTo(next.name) < 0)) {
+        if (next == null ||
+            (top != null && top.name.compareTo(next.name) < 0)) {
           next = top;
           nextX = i;
         }
@@ -86,27 +84,26 @@ class Merge {
                 // The file does not exist in the  baseEntry. Create a dummy entry.
                 baseEntry = TreeEntry.dummyEntry(false);
                 if (next.isBlob) {
-                  conflicts.add( new MergeItem(next, null, theirEntry, true));
+                  conflicts.add(new MergeItem(next, null, theirEntry, true));
                   break;
                 }
               }
-              if (next.isBlob == theirEntry.isBlob && (baseEntry.isBlob
-                  == next.isBlob)) {
+              if (next.isBlob == theirEntry.isBlob &&
+                  (baseEntry.isBlob == next.isBlob)) {
                 if (shasEqual(next.shaBytes, baseEntry.shaBytes)) {
                   finalTree.add(theirEntry);
-                } else if (shasEqual(baseEntry.shaBytes, theirEntry.shaBytes)){
+                } else if (shasEqual(baseEntry.shaBytes, theirEntry.shaBytes)) {
                   finalTree.add(next);
                 } else {
                   merges.add(new MergeItem(next, baseEntry, theirEntry));
                 }
               } else {
-                conflicts.add(new MergeItem(next, baseEntry, theirEntry,
-                    true));
+                conflicts.add(new MergeItem(next, baseEntry, theirEntry, true));
               }
             } else {
               finalTree.add(next);
             }
-          } else if(baseEntry.name == next.name) {
+          } else if (baseEntry.name == next.name) {
             if (!shasEqual(baseEntry.shaBytes, next.shaBytes)) {
               // deleted from theirs but changed in ours. Delete/modfify
               // conflict.
@@ -119,8 +116,8 @@ class Merge {
 
         case 1:
           TreeEntry theirEntry = allTrees[2][indices[2]];
-          if (next.name == theirEntry.name && !shasEqual(next.shaBytes,
-              theirEntry.shaBytes)) {
+          if (next.name == theirEntry.name &&
+              !shasEqual(next.shaBytes, theirEntry.shaBytes)) {
             // deleted from ours but changed in theirs. Delete/modify conflict.
             conflicts.add(new MergeItem(null, next, theirEntry, true));
           }
@@ -133,8 +130,8 @@ class Merge {
 
       for (int i = 0; i < allTrees.length; ++i) {
         List treeEntries = allTrees[i];
-        if (indices[i] < treeEntries.length && treeEntries[indices[i]].name
-            == next.name) {
+        if (indices[i] < treeEntries.length &&
+            treeEntries[indices[i]].name == next.name) {
           indices[i]++;
         }
       }
@@ -147,38 +144,41 @@ class Merge {
 
     return Future.forEach(merges, (MergeItem item) {
       List<String> shas = [item.ours.sha, item.base.sha, item.theirs.sha];
-        if (item.ours.isBlob) {
-          return store.retrieveObjectBlobsAsString(shas).then(
-              (List<LooseObject> blobs) {
-            Diff3Result diffResult = Diff3.diff(blobs[0].data,
-                blobs[1].data, blobs[2].data);
-            if (diffResult.conflict) {
-              item.conflictText = diffResult.text;
-              conflicts.add(item);
-              return conflicts;
-            } else {
-              return store.writeRawObject('blob', diffResult.text).then(
-                  (String sha) {
-                item.ours.shaBytes = shaToBytes(sha);
-                finalTree.add(item.ours);
-                return [];
-              });
-            }
-          });
-        } else {
-          return store.retrieveObjectList(shas, ObjectTypes.TREE_STR).then(
-              (List<TreeObject> trees) {
-            return mergeTrees(store, trees[0], trees[1], trees[2]).then(
-                (String mergedSha) {
-              item.ours.shaBytes = shaToBytes(mergedSha);
+      if (item.ours.isBlob) {
+        return store
+            .retrieveObjectBlobsAsString(shas)
+            .then((List<LooseObject> blobs) {
+          Diff3Result diffResult =
+              Diff3.diff(blobs[0].data, blobs[1].data, blobs[2].data);
+          if (diffResult.conflict) {
+            item.conflictText = diffResult.text;
+            conflicts.add(item);
+            return conflicts;
+          } else {
+            return store
+                .writeRawObject('blob', diffResult.text)
+                .then((String sha) {
+              item.ours.shaBytes = shaToBytes(sha);
               finalTree.add(item.ours);
-              return null;
-            }, onError: (List<MergeItem> newConflicts) {
-              conflicts.addAll(newConflicts);
               return [];
             });
+          }
+        });
+      } else {
+        return store
+            .retrieveObjectList(shas, ObjectTypes.TREE_STR)
+            .then((List<TreeObject> trees) {
+          return mergeTrees(store, trees[0], trees[1], trees[2]).then(
+              (String mergedSha) {
+            item.ours.shaBytes = shaToBytes(mergedSha);
+            finalTree.add(item.ours);
+            return null;
+          }, onError: (List<MergeItem> newConflicts) {
+            conflicts.addAll(newConflicts);
+            return [];
           });
-        }
+        });
+      }
     }).then((_) {
       if (conflicts.isEmpty) {
         return store.writeTree(finalTree);

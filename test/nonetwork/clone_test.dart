@@ -4,6 +4,7 @@
 
 library git_no_network_clone_test;
 
+import 'package:dart_git/src/commands/clone.dart';
 import 'package:dart_git/src/exception.dart';
 import 'package:dart_git/src/http_fetcher.dart';
 import 'package:dart_git/src/objectstore.dart';
