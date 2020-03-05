@@ -6,8 +6,6 @@ library git.commands.checkout;
 
 import 'dart:async';
 
-import 'package:chrome/chrome_app.dart' as chrome;
-
 import 'treediff.dart';
 import '../constants.dart';
 import '../exception.dart';
@@ -22,10 +20,8 @@ import 'status.dart';
  * This class implments the git checkout command.
  */
 class Checkout {
-
-  static Future _removeEntryRecursively(ObjectStore store,
-    chrome.DirectoryEntry dir, TreeEntry treeEntry) {
-
+  static Future _removeEntryRecursively(
+      ObjectStore store, chrome.DirectoryEntry dir, TreeEntry treeEntry) {
     if (treeEntry.isBlob) {
       return dir.getFile(treeEntry.name).then((fileEntry) {
         store.index.deleteIndexForEntry(fileEntry.fullPath);
@@ -72,11 +68,11 @@ class Checkout {
           TreeEntry oldEntry = diffEntry.oldEntry;
           TreeEntry newEntry = diffEntry.newEntry;
           if (newEntry.isBlob) {
-            return ObjectUtils.expandBlob(dir, store, newEntry.name,
-                newEntry.sha, newEntry.permission);
+            return ObjectUtils.expandBlob(
+                dir, store, newEntry.name, newEntry.sha, newEntry.permission);
           } else {
-            return store.retrieveObjectList([oldEntry.sha, newEntry.sha],
-                "Tree").then((trees) {
+            return store.retrieveObjectList(
+                [oldEntry.sha, newEntry.sha], "Tree").then((trees) {
               return dir.createDirectory(newEntry.name).then((newDir) {
                 return smartCheckout(newDir, store, trees[0], trees[1]);
               });
@@ -101,7 +97,8 @@ class Checkout {
       if (newSha != null) {
         return _checkout(options, currentSha, newSha);
       } else {
-        return store.getHeadForRef(REFS_HEADS + branch).then((String branchSha) {
+        return store.getHeadForRef(REFS_HEADS + branch).then(
+            (String branchSha) {
           return _checkout(options, currentSha, branchSha);
         }, onError: (e) {
           throw new GitException(GitErrorConstants.GIT_BRANCH_NOT_FOUND);
@@ -110,7 +107,8 @@ class Checkout {
     });
   }
 
-  static Future _checkout(GitOptions options, String currentSha, String newSha) {
+  static Future _checkout(
+      GitOptions options, String currentSha, String newSha) {
     chrome.DirectoryEntry root = options.root;
     ObjectStore store = options.store;
     String branch = options.branchName;

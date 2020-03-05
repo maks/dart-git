@@ -7,7 +7,6 @@ library git.utils;
 import 'dart:async';
 import 'dart:core';
 
-import 'package:chrome/chrome_app.dart' as chrome;
 import 'package:logging/logging.dart';
 
 import 'constants.dart';
@@ -28,7 +27,7 @@ bool isGitUri(String uri) => _gitUrlRegExp.hasMatch(uri);
 List<int> shaToBytes(String sha) {
   List<int> bytes = [];
   for (var i = 0; i < sha.length; i += 2) {
-    bytes.add(int.parse('0x' + sha[i] + sha[i+1]));
+    bytes.add(int.parse('0x' + sha[i] + sha[i + 1]));
   }
   return bytes;
 }
@@ -104,8 +103,7 @@ Future cleanWorkingDir(chrome.DirectoryEntry root) {
  */
 String getCurrentTimeAsString() {
   DateTime now = new DateTime.now();
-  String dateString =
-      (now.millisecondsSinceEpoch / 1000).floor().toString();
+  String dateString = (now.millisecondsSinceEpoch / 1000).floor().toString();
   int offset = (now.timeZoneOffset.inHours).floor();
   int absOffset = offset.abs().floor();
   String offsetStr = ' ' + (offset < 0 ? '-' : '+');
@@ -126,7 +124,6 @@ void nopFunction() => null;
  * is cancelled.
  */
 abstract class Cancel {
-
   bool _cancel = false;
   String _errorCode;
   bool canIgnore;

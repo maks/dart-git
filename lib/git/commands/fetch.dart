@@ -6,8 +6,6 @@ library git.commands.fetch;
 
 import 'dart:async';
 
-import 'package:chrome/chrome_app.dart' as chrome;
-
 import '../constants.dart';
 import '../exception.dart';
 import '../file_operations.dart';
@@ -27,7 +25,6 @@ import 'status.dart';
 */
 
 class Fetch {
-
   GitOptions options;
   chrome.DirectoryEntry root;
   ObjectStore store;
@@ -43,7 +40,7 @@ class Fetch {
     if (progress == null) progress = nopFunction;
   }
 
-   Future fetch() {
+  Future fetch() {
     String username = options.username;
     String password = options.password;
 
@@ -53,14 +50,15 @@ class Fetch {
     return Status.isWorkingTreeClean(store).then((_) {
       String url = store.config.url;
 
-      HttpFetcher fetcher = new HttpFetcher(
-          store, 'origin', url, username, password);
+      HttpFetcher fetcher =
+          new HttpFetcher(store, 'origin', url, username, password);
 
       // get current branch.
       String headRefName = 'refs/heads/' + branchName;
       return _updateAndGetRemoteRefs(store, fetcher).then((List<GitRef> refs) {
         GitRef branchRef = refs.firstWhere(
-            (GitRef ref) => ref.name == headRefName, orElse: () => null);
+            (GitRef ref) => ref.name == headRefName,
+            orElse: () => null);
 
         if (branchRef == null) {
           return new Future.error(
@@ -106,13 +104,12 @@ class Fetch {
   }
 
   Future _handleFetch(GitRef branchRef, GitRef wantRef, HttpFetcher fetcher) {
-
     // Get the sha from the ref name.
     return store.getRemoteHeadForRef(branchRef.name).then((String sha) {
       branchRef.localHead = sha;
       return store.getCommitGraph([sha], 32).then((CommitGraph graph) {
-        List<String> haveRefs = graph.commits.map((CommitObject commit)
-            => commit.treeSha).toList();
+        List<String> haveRefs =
+            graph.commits.map((CommitObject commit) => commit.treeSha).toList();
         if (haveRefs.isEmpty) {
           haveRefs = null;
         }

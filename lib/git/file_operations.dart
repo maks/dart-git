@@ -9,7 +9,6 @@ import 'dart:core';
 import 'dart:js';
 import 'dart:typed_data';
 
-import 'package:chrome/chrome_app.dart' as chrome;
 
 /**
  * Utility class to access HTML5 filesystem operations.

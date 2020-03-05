@@ -7,9 +7,6 @@ library git_pack_index_test;
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:chrome/chrome_app.dart' as chrome;
-import 'package:unittest/unittest.dart';
-
 import '../../lib/utils.dart';
 import '../../lib/git/object.dart';
 import '../../lib/git/pack.dart';

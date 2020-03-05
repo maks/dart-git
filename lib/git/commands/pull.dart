@@ -5,9 +5,6 @@
 library git.commands.pull;
 
 import 'dart:async';
-
-import 'package:chrome/chrome_app.dart' as chrome;
-
 import '../exception.dart';
 import '../file_operations.dart';
 import '../objectstore.dart';
@@ -42,9 +39,10 @@ class Pull {
     if (progress == null) progress = nopFunction;
   }
 
-
   Future pull() {
-    return new Fetch(options).fetch().then((_) => _merge())
+    return new Fetch(options)
+        .fetch()
+        .then((_) => _merge())
         .catchError((GitException e) {
       // The branch head may be out of date. Update it.
       if (e.errorCode == GitErrorConstants.GIT_FETCH_UP_TO_DATE) {
@@ -62,7 +60,8 @@ class Pull {
             return new Future.error(
                 new GitException(GitErrorConstants.GIT_BRANCH_UP_TO_DATE));
           }
-          return store.getCommonAncestor([remoteSha, localSha]).then((commonSha) {
+          return store
+              .getCommonAncestor([remoteSha, localSha]).then((commonSha) {
             if (commonSha == remoteSha) {
               return new Future.error(
                   new GitException(GitErrorConstants.GIT_BRANCH_UP_TO_DATE));
@@ -88,7 +87,8 @@ class Pull {
     });
   }
 
-  Future _nonFastForwardPull(String localSha, String commonSha, String remoteSha) {
+  Future _nonFastForwardPull(
+      String localSha, String commonSha, String remoteSha) {
     List shas = [localSha, commonSha, remoteSha];
     return store.getHeadRef().then((String headRefName) {
       return store.getTreesFromCommits(shas).then((trees) {
@@ -96,13 +96,16 @@ class Pull {
             .then((String finalTreeSha) {
           return store.getCurrentBranch().then((branch) {
             options.branchName = branch;
-            options.commitMessage = MERGE_BRANCH_COMMIT_MSG + options.branchName;
+            options.commitMessage =
+                MERGE_BRANCH_COMMIT_MSG + options.branchName;
             // Create a merge commit by default.
-            return Commit.createCommit(options, [remoteSha, localSha], finalTreeSha,
-                headRefName).then((commitSha) {
+            return Commit.createCommit(
+                    options, [remoteSha, localSha], finalTreeSha, headRefName)
+                .then((commitSha) {
               return Checkout.checkout(options, commitSha).then((_) {
-                return FileOps.createFileWithContent(options.root, '.git/${headRefName}',
-                    commitSha + '\n', 'Text').then((_) {
+                return FileOps.createFileWithContent(options.root,
+                        '.git/${headRefName}', commitSha + '\n', 'Text')
+                    .then((_) {
                   return store.writeConfig().then((_) => commitSha);
                 });
               });

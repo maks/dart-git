@@ -7,8 +7,6 @@ library git.commands.index;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:chrome/chrome_app.dart' as chrome;
-
 import 'constants.dart';
 import '../constants.dart';
 import '../exception.dart';
@@ -25,7 +23,6 @@ import '../utils.dart';
  * TODO(grv): Implement the interface.
  */
 class Index {
-
   final ObjectStore _store;
   Map<String, FileStatus> _statusIdx = {};
   Map<String, FileStatus> get statusMap => _statusIdx;
@@ -74,19 +71,19 @@ class Index {
       status.headSha = oldStatus.headSha;
 
       if (!status.compareTo(oldStatus)) {
-        switch(oldStatus.type) {
+        switch (oldStatus.type) {
           case FileStatusType.COMMITTED:
             status.type = FileStatusType.MODIFIED;
             break;
           case FileStatusType.STAGED:
-            if (status.headSha != status.sha){
+            if (status.headSha != status.sha) {
               status.type = FileStatusType.STAGED;
             } else {
               status.type = FileStatusType.COMMITTED;
             }
             break;
           case FileStatusType.MODIFIED:
-            if (status.headSha != status.sha){
+            if (status.headSha != status.sha) {
               status.type = FileStatusType.MODIFIED;
             } else {
               status.type = FileStatusType.COMMITTED;
@@ -94,7 +91,8 @@ class Index {
             break;
           case FileStatusType.UNTRACKED:
           default:
-            throw new GitException(GitErrorConstants.GIT_FILE_STATUS_TYPE_UNKNOWN,
+            throw new GitException(
+                GitErrorConstants.GIT_FILE_STATUS_TYPE_UNKNOWN,
                 "Unknown file status type: ${oldStatus.type}");
         }
       } else {
@@ -125,8 +123,8 @@ class Index {
     return updateIndex();
   }
 
-  FileStatus getStatusForEntry(chrome.Entry entry)
-      => _statusIdx[entry.fullPath];
+  FileStatus getStatusForEntry(chrome.Entry entry) =>
+      _statusIdx[entry.fullPath];
 
   Future init() {
     return readIndex();
@@ -134,18 +132,18 @@ class Index {
 
   // TODO(grv): Remove this after index file implementation.
   void reset([bool isFirstRun]) {
-      _statusIdx.forEach((String key, FileStatus status) {
-        if (status.type != FileStatusType.UNTRACKED || isFirstRun != null) {
-          status.type = FileStatusType.COMMITTED;
-        }
-        status.headSha = status.sha;
-      });
-      _scheduleWriteIndex();
+    _statusIdx.forEach((String key, FileStatus status) {
+      if (status.type != FileStatusType.UNTRACKED || isFirstRun != null) {
+        status.type = FileStatusType.COMMITTED;
+      }
+      status.headSha = status.sha;
+    });
+    _scheduleWriteIndex();
   }
 
-  Future updateIndex([bool updateSha=true]) {
-    return walkFilesAndUpdateIndex(_store.root, updateSha).then(
-        (List<FileStatus> statuses) {
+  Future updateIndex([bool updateSha = true]) {
+    return walkFilesAndUpdateIndex(_store.root, updateSha)
+        .then((List<FileStatus> statuses) {
       _updateDeletedFiles(statuses);
       return new Future.value();
     });
@@ -155,8 +153,9 @@ class Index {
    * Reads the index file and loads it.
    */
   Future readIndex() {
-    return _store.root.getDirectory(GIT_FOLDER_PATH).then(
-        (chrome.DirectoryEntry entry) {
+    return _store.root
+        .getDirectory(GIT_FOLDER_PATH)
+        .then((chrome.DirectoryEntry entry) {
       return entry.getFile('index2').then((chrome.ChromeFileEntry entry) {
         return entry.readText().then((String content) {
           JsonDecoder decoder = new JsonDecoder(null);
@@ -178,8 +177,9 @@ class Index {
     _writingIndex = true;
     _writeIndexCompleter = new Completer();
     String out = JSON.encode(statusIdxToMap());
-    return _store.root.getDirectory(GIT_FOLDER_PATH).then(
-        (chrome.DirectoryEntry entry) {
+    return _store.root
+        .getDirectory(GIT_FOLDER_PATH)
+        .then((chrome.DirectoryEntry entry) {
       return FileOps.createFileWithContent(entry, 'index2', out, 'Text')
           .then((_) {
         Completer completer = _writeIndexCompleter;
@@ -255,73 +255,73 @@ class Index {
    * Walks over all the files in the working tree. Returns status of the
    * working tree.
    */
-   Future<List<FileStatus>> walkFilesAndUpdateIndex(chrome.DirectoryEntry root,
-       bool updateSha) {
-     List<FileStatus> fileStatuses = [];
-     return FileOps.listFiles(root).then(
-         (List<chrome.ChromeFileEntry> entries) {
-       if (entries.isEmpty) {
-         deleteIndexForEntry(root.fullPath);
-         return fileStatuses;
-       }
+  Future<List<FileStatus>> walkFilesAndUpdateIndex(
+      chrome.DirectoryEntry root, bool updateSha) {
+    List<FileStatus> fileStatuses = [];
+    return FileOps.listFiles(root).then((List<chrome.ChromeFileEntry> entries) {
+      if (entries.isEmpty) {
+        deleteIndexForEntry(root.fullPath);
+        return fileStatuses;
+      }
 
-       return Future.forEach(entries, (chrome.Entry entry) {
-         if ((_store.root.fullPath + '.git') == entry.fullPath) {
-           return fileStatuses;
-         }
+      return Future.forEach(entries, (chrome.Entry entry) {
+        if ((_store.root.fullPath + '.git') == entry.fullPath) {
+          return fileStatuses;
+        }
 
-         if (entry.isDirectory) {
-           return walkFilesAndUpdateIndex(entry, updateSha).then((statuses) {
-             fileStatuses.addAll(statuses);
-           });
-         } else {
-           // don't update index for untracked files.
-           if (_statusIdx[entry.fullPath] != null) {
-             fileStatuses.add(_statusIdx[entry.fullPath]);
-             if (updateSha) {
-               return _updateSha(entry);
-             }
-           }
-         }
-       }).then((_) {
-         if (fileStatuses.isEmpty) {
-           deleteIndexForEntry(root.fullPath);
-         } else if (fileStatuses.any((status) => status.type
-             != FileStatusType.COMMITTED)) {
-           FileStatus status = FileStatus.createForDirectory(root);
-           status.type = FileStatusType.MODIFIED;
-           _statusIdx[root.fullPath] = status;
-           fileStatuses.add(status);
-         } else {
-           FileStatus status = FileStatus.createForDirectory(root);
-           status.type = FileStatusType.COMMITTED;
-           status.path = root.fullPath;
-           _statusIdx[root.fullPath] = status;
-           fileStatuses.add(status);
-         }
-         return fileStatuses;
-       });
-     });
-   }
+        if (entry.isDirectory) {
+          return walkFilesAndUpdateIndex(entry, updateSha).then((statuses) {
+            fileStatuses.addAll(statuses);
+          });
+        } else {
+          // don't update index for untracked files.
+          if (_statusIdx[entry.fullPath] != null) {
+            fileStatuses.add(_statusIdx[entry.fullPath]);
+            if (updateSha) {
+              return _updateSha(entry);
+            }
+          }
+        }
+      }).then((_) {
+        if (fileStatuses.isEmpty) {
+          deleteIndexForEntry(root.fullPath);
+        } else if (fileStatuses
+            .any((status) => status.type != FileStatusType.COMMITTED)) {
+          FileStatus status = FileStatus.createForDirectory(root);
+          status.type = FileStatusType.MODIFIED;
+          _statusIdx[root.fullPath] = status;
+          fileStatuses.add(status);
+        } else {
+          FileStatus status = FileStatus.createForDirectory(root);
+          status.type = FileStatusType.COMMITTED;
+          status.path = root.fullPath;
+          _statusIdx[root.fullPath] = status;
+          fileStatuses.add(status);
+        }
+        return fileStatuses;
+      });
+    });
+  }
 
-   Future _updateSha(chrome.FileEntry entry) {
-     FileStatus status = _statusIdx[entry.fullPath];
-     return entry.getMetadata().then((data) {
-       if (status.modificationTime == data.modificationTime.millisecondsSinceEpoch) {
-         return new Future.value();
-       } else {
-         return getShaForEntry(entry, 'blob').then((String sha) {
-           FileStatus newStatus = new FileStatus()
-               ..path = entry.fullPath
-               ..sha = sha
-               ..size = data.size
-               ..modificationTime = data.modificationTime.millisecondsSinceEpoch
-               ..permission = status.permission;
-           updateIndexForFile(newStatus);
-         });
-       }
-     });
-   }
+  Future _updateSha(chrome.FileEntry entry) {
+    FileStatus status = _statusIdx[entry.fullPath];
+    return entry.getMetadata().then((data) {
+      if (status.modificationTime ==
+          data.modificationTime.millisecondsSinceEpoch) {
+        return new Future.value();
+      } else {
+        return getShaForEntry(entry, 'blob').then((String sha) {
+          FileStatus newStatus = new FileStatus()
+            ..path = entry.fullPath
+            ..sha = sha
+            ..size = data.size
+            ..modificationTime = data.modificationTime.millisecondsSinceEpoch
+            ..permission = status.permission;
+          updateIndexForFile(newStatus);
+        });
+      }
+    });
+  }
 
   /**
    * Update the index saving the information for deleted files. If the files
@@ -421,18 +421,18 @@ class FileStatus {
    * Return true if the [entry] is same as [this].
    */
   bool compareTo(FileStatus status) =>
-    (status.path == path && status.sha == sha && status.size == size);
+      (status.path == path && status.sha == sha && status.size == size);
 
   Map toMap() {
     return {
       'path': path,
       'headSha': headSha,
-      'sha' : sha,
-      'size' : size,
-      'modificationTime' : modificationTime,
+      'sha': sha,
+      'size': size,
+      'modificationTime': modificationTime,
       'permission': permission,
-      'type' : type,
-      'deleted' : deleted
+      'type': type,
+      'deleted': deleted
     };
   }
 

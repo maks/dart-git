@@ -6,9 +6,6 @@ library spark.git_objectstore_test;
 
 import 'dart:async';
 
-import 'package:chrome/chrome_app.dart' as chrome;
-import 'package:unittest/unittest.dart';
-
 import '../../lib/files_mock.dart';
 import '../../lib/git/file_operations.dart';
 //import '../../lib/git/object.dart';
@@ -39,9 +36,7 @@ Future<ObjectStore> initStore(fs) {
 }
 
 defineTests() {
-
   group('git.objectstore', () {
-
 //    // TODO: this test is timing out
 //    test('Load and init store from git test directory.', () {
 //      MockFileSystem fs = new MockFileSystem();
@@ -66,6 +61,5 @@ defineTests() {
 //        });
 //      });
 //    });
-
   });
 }
