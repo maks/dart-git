@@ -3,7 +3,7 @@ version: 0.0.2
 description: A Git client library
 homepage: https://github.com/maks/dart-git
 environment:
-  sdk: '>=2.0.0 <3.0.0'
+  sdk: '>=2.7.0 <3.0.0'
 dependencies:
   archive: 2.0.13
   diff_match_patch: 0.3.0
