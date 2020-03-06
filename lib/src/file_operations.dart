@@ -2,15 +2,13 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-library git.file_operations;
-
 import 'dart:async';
 import 'dart:core';
-import 'dart:io';
 import 'dart:js';
 import 'dart:typed_data';
+import 'file_io.dart';
 
-import 'package:dart_git/src/entry.dart';
+export 'file_io.dart';
 
 /**
  * Utility class to access HTML5 filesystem operations.
@@ -47,8 +45,8 @@ abstract class FileOps {
    * Creates a file with a given [content] and [type]. Creates parent
    * directories if the immediate parent is absent.
    */
-  static Future<FileEntry> createFileWithContent(
-      DirectoryEntry root, String path, content, String type) {
+  static Future<File> createFileWithContent(
+      Directory root, String path, content, String type) {
     if (path[0] == '/') path = path.substring(1);
     List<String> pathParts = path.split('/');
     if (pathParts.length != 1) {
@@ -62,20 +60,20 @@ abstract class FileOps {
     }
   }
 
-  static Future<String> readFileText(DirectoryEntry root, String path) {
-    return root.getFile(path).then((FileEntry entry) {
+  static Future<String> readFileText(Directory root, String path) {
+    return root.getFile(path).then((File entry) {
       return readText(entry);
     });
   }
 
-  static Future<List<int>> readFileBytes(DirectoryEntry root, String path) {
-    return root.getFile(path).then((FileEntry entry) {
+  static Future<List<int>> readFileBytes(Directory root, String path) {
+    return root.getFile(path).then((File entry) {
       return readBytes(entry);
     });
   }
 
-  static Future<String> readText(FileEntry entry) {
-    if (entry is ChromeFileEntry) {
+  static Future<String> readText(File entry) {
+    if (entry is File) {
       return entry.readText();
     } else {
       return entry.file().then((File file) {
@@ -91,8 +89,8 @@ abstract class FileOps {
     }
   }
 
-  static Future<List<int>> readBytes(FileEntry entry) {
-    if (entry is ChromeFileEntry) {
+  static Future<List<int>> readBytes(File entry) {
+    if (entry is File) {
       return entry.readBytes().then((ArrayBuffer buf) => buf.getBytes());
     } else {
       return entry.file().then((File file) {
@@ -122,7 +120,7 @@ abstract class FileOps {
   /**
    * Lists the files in a given [root] directory.
    */
-  static Future<List<Entry>> listFiles(DirectoryEntry root) {
+  static Future<List<FileSystemEntity>> listFiles(Directory root) {
     return root.createReader().readEntries();
   }
 
@@ -157,16 +155,15 @@ abstract class FileOps {
   /**
    * Copy contents of a [src] directory into a [dst] directory recursively.
    */
-  static Future<DirectoryEntry> copyDirectory(
-      DirectoryEntry src, DirectoryEntry dst) {
-    return listFiles(src).then((List<Entry> entries) {
-      return Future.forEach(entries, (Entry entry) {
+  static Future<Directory> copyDirectory(Directory src, Directory dst) {
+    return listFiles(src).then((List<FileSystemEntity> entries) {
+      return Future.forEach(entries, (FileSystemEntity entry) {
         if (entry.isFile) {
-          return (entry as ChromeFileEntry).readBytes().then((content) {
+          return (entry as File).readBytes().then((content) {
             return createFileWithContent(dst, entry.name, content, 'blob');
           });
         } else {
-          return dst.createDirectory(entry.name).then((DirectoryEntry dir) {
+          return dst.createDirectory(entry.name).then((Directory dir) {
             return copyDirectory(entry, dir);
           });
         }
@@ -174,15 +171,15 @@ abstract class FileOps {
     });
   }
 
-  static Future<FileEntry> _createFile(
-      DirectoryEntry dir, String fileName, content, String type) {
+  static Future<File> _createFile(
+      Directory dir, String fileName, content, String type) {
     if (type != 'Text' && type != 'blob') {
       return new Future.error(new UnsupportedError(
           "Writing of content type ${type} is not supported."));
     }
 
-    return dir.createFile(fileName).then((FileEntry entry) {
-      if (entry is ChromeFileEntry) {
+    return dir.createFile(fileName).then((File entry) {
+      if (entry is File) {
         if (type == 'Text') {
           return entry.writeText(content).then((_) => entry);
         } else if (type == 'blob') {
@@ -199,18 +196,18 @@ abstract class FileOps {
     });
   }
 
-  static Future _writeTextContent(FileEntry entry, String contents) {
+  static Future _writeTextContent(File entry, String contents) {
     Blob blob = new Blob([contents]);
     return _writeBlob(entry, blob);
   }
 
-  static Future _writeBinaryContent(FileEntry entry, List<int> contents) {
+  static Future _writeBinaryContent(File entry, List<int> contents) {
     Uint8List list = new Uint8List.fromList(contents);
     Blob blob = new Blob([list]);
     return _writeBlob(entry, blob);
   }
 
-  static Future _writeBlob(FileEntry entry, Blob blob) {
+  static Future _writeBlob(File entry, Blob blob) {
     Completer completer = new Completer();
 
     entry.createWriter().then((FileWriter writer) {

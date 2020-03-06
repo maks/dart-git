@@ -5,15 +5,14 @@
 library git.commands.clone;
 
 import 'dart:async';
-import 'package:dart_git/src/entry.dart';
 
 import '../config.dart';
 import '../constants.dart';
 import '../exception.dart';
 import '../file_operations.dart';
 import '../http_fetcher.dart';
-import '../objectstore.dart';
 import '../object_utils.dart';
+import '../objectstore.dart';
 import '../options.dart';
 import '../pack.dart';
 import '../profiler.dart';
@@ -41,7 +40,7 @@ class Clone {
     _cancel = new CloneCancel();
   }
 
-  DirectoryEntry get root => _options.root;
+  Directory get root => _options.root;
 
   ObjectStore get store => _options.store;
 
@@ -82,9 +81,7 @@ class Clone {
    */
   Future startClone(HttpFetcher fetcher) {
     return _checkDirectory(root, store, true).then((_) {
-      return _options.root
-          .createDirectory(".git")
-          .then((DirectoryEntry gitDir) {
+      return _options.root.createDirectory(".git").then((Directory gitDir) {
         return _callMethod(fetcher.fetchUploadRefs, [])
             .then((List<GitRef> refs) {
           logger.info(_stopwatch.finishCurrentTask('fetchUploadRefs'));
@@ -131,9 +128,9 @@ class Clone {
 
   Future _cleanup() {
     return FileOps.listFiles(_options.root).then((entries) {
-      return Future.forEach(entries, (Entry entry) {
+      return Future.forEach(entries, (FileSystemEntity entry) {
         if (entry.isDirectory) {
-          return (entry as DirectoryEntry).removeRecursively();
+          return (entry as Directory).removeRecursively();
         } else {
           return entry.remove();
         }
@@ -142,13 +139,13 @@ class Clone {
   }
 
   Future _createCurrentTreeFromPack(
-      DirectoryEntry dir, ObjectStore store, String headSha) {
+      Directory dir, ObjectStore store, String headSha) {
     return store.retrieveObject(headSha, ObjectTypes.COMMIT_STR).then((commit) {
       return ObjectUtils.expandTree(dir, store, commit.treeSha);
     });
   }
 
-  Future _checkDirectory(DirectoryEntry dir, ObjectStore store,
+  Future _checkDirectory(Directory dir, ObjectStore store,
       [bool uninitializedOk = false]) {
     return FileOps.listFiles(dir).then((List entries) {
       if (entries.length == 0 && uninitializedOk) {
@@ -182,7 +179,8 @@ class Clone {
     });
   }
 
-  Future<Entry> _createInitialConfig(String shallow, GitRef localHeadRef) {
+  Future<FileSystemEntity> _createInitialConfig(
+      String shallow, GitRef localHeadRef) {
     Config config = _options.store.config;
     config.url = _options.repoUrl;
     config.time = new DateTime.now();
@@ -198,7 +196,7 @@ class Clone {
   }
 
   Future _processClone(
-      DirectoryEntry gitDir, GitRef localHeadRef, HttpFetcher fetcher) {
+      Directory gitDir, GitRef localHeadRef, HttpFetcher fetcher) {
     return _createHeadAndRef(gitDir, localHeadRef).then((_) {
       return _callMethod(
               fetcher.fetchRef,
@@ -228,7 +226,7 @@ class Clone {
     });
   }
 
-  Future _createHeadAndRef(DirectoryEntry gitDir, GitRef localHeadRef) {
+  Future _createHeadAndRef(Directory gitDir, GitRef localHeadRef) {
     return FileOps.createFileWithContent(
             gitDir, "HEAD", "ref: ${localHeadRef.name}\n", "Text")
         .then((_) {

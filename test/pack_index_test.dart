@@ -4,11 +4,11 @@
 
 library git_pack_index_test;
 
-import 'package:test/test.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:dart_git/src/entry.dart';
+import 'package:dart_git/src/file_io.dart';
+import 'package:test/test.dart';
 
 import '../lib/src/object.dart';
 import '../lib/src/pack.dart';
@@ -18,9 +18,9 @@ final String PACK_FILE_PATH = 'test/data/pack_test.pack';
 final String PACK_INDEX_FILE_PATH = 'test/data/pack_index_test.idx';
 
 Future<Pack> initPack() {
-  return getPackageDirectoryEntry().then((DirectoryEntry dir) {
+  return getPackageDirectoryEntry().then((Directory dir) {
     return dir.getFile(PACK_FILE_PATH);
-  }).then((ChromeFileEntry entry) {
+  }).then((File entry) {
     return entry.readBytes();
   }).then((ArrayBuffer binaryData) {
     Uint8List data = new Uint8List.fromList(binaryData.getBytes());
@@ -30,9 +30,9 @@ Future<Pack> initPack() {
 }
 
 Future<PackIndex> initPackIndex() {
-  return getPackageDirectoryEntry().then((DirectoryEntry dir) {
+  return getPackageDirectoryEntry().then((Directory dir) {
     return dir.getFile(PACK_INDEX_FILE_PATH);
-  }).then((ChromeFileEntry entry) {
+  }).then((File entry) {
     return entry.readBytes();
   }).then((ArrayBuffer binaryData) {
     return new PackIndex(binaryData.getBytes());

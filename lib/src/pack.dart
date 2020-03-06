@@ -392,7 +392,7 @@ class Pack {
   /**
    * Create pack and packIndex file. Adds the created pack to the [store].
    */
-  static Future<DirectoryEntry> createPackFiles(
+  static Future<Directory> createPackFiles(
       ObjectStore store, PackParseResult result) {
     List<int> packSha = result.data.sublist(result.data.length - 20);
     Uint8List packIdxData = PackIndex.writePackIndex(result.objects, packSha);
@@ -408,7 +408,7 @@ class Pack {
 
     String packName = 'pack-${packNameSha}';
     return FileOps.createDirectoryRecursive(store.root, '.git/objects')
-        .then((DirectoryEntry objectsDir) {
+        .then((Directory objectsDir) {
       return FileOps.createFileWithContent(
               objectsDir, 'pack/${packName}.pack', result.data, 'blob')
           .then((_) {

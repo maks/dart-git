@@ -13,13 +13,13 @@ import '../lib/src/objectstore.dart';
 final String GIT_ROOT_DIRECTORY_PATH = 'test/data/git';
 
 Future getGitDirectory() {
-  return getPackageDirectoryEntry().then((DirectoryEntry dir) {
+  return getPackageDirectoryEntry().then((Directory dir) {
     return dir.getDirectory(GIT_ROOT_DIRECTORY_PATH);
   });
 }
 
 Future copyTestGitDirectory(MockFileSystem fs) {
-  return getGitDirectory().then((DirectoryEntry gitDir) {
+  return getGitDirectory().then((Directory gitDir) {
     return fs.root.createDirectory('.git').then((dst) {
       return FileOps.copyDirectory(gitDir, dst);
     });
@@ -27,7 +27,7 @@ Future copyTestGitDirectory(MockFileSystem fs) {
 }
 
 Future<ObjectStore> initStore(fs) {
-  return copyTestGitDirectory(fs).then((DirectoryEntry root) {
+  return copyTestGitDirectory(fs).then((Directory root) {
     ObjectStore store = new ObjectStore(fs.root);
     return store.load().then((_) => store);
   });

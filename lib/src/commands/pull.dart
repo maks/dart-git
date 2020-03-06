@@ -5,7 +5,6 @@
 library git.commands.pull;
 
 import 'dart:async';
-import 'package:dart_git/src/entry.dart';
 
 import '../exception.dart';
 import '../file_operations.dart';
@@ -25,7 +24,7 @@ import 'merge.dart';
  */
 class Pull {
   final GitOptions options;
-  DirectoryEntry root;
+  Directory root;
   String username;
   String password;
   ObjectStore store;

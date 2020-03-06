@@ -91,7 +91,7 @@ class Status {
       return new Future.value();
     }
 
-    return entry.getParent().then((DirectoryEntry root) {
+    return entry.getParent().then((Directory root) {
       return FileOps.listFiles(root).then((entries) {
         bool isChanged = entries.any((entry) =>
             getStatusForEntry(store, entry).type == FileStatusType.MODIFIED);

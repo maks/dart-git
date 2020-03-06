@@ -5,7 +5,6 @@
 library git.commands.fetch;
 
 import 'dart:async';
-import 'package:dart_git/src/entry.dart';
 
 import '../constants.dart';
 import '../exception.dart';
@@ -27,7 +26,7 @@ import 'status.dart';
 
 class Fetch {
   GitOptions options;
-  DirectoryEntry root;
+  Directory root;
   ObjectStore store;
   Function progress;
   String branchName;

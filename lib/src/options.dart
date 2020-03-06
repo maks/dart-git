@@ -6,11 +6,12 @@ library git.options;
 
 import 'dart:js' as js;
 
+import 'file_io.dart';
 import 'objectstore.dart';
 
 class GitOptions {
   // The directory entry where the git checkout resides.
-  DirectoryEntry root;
+  Directory root;
 
   // Optional
 

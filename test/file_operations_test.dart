@@ -5,7 +5,6 @@
 import 'package:test/test.dart';
 
 import 'dart:convert';
-import 'dart:html';
 import 'dart:typed_data';
 
 import 'files_mock.dart';
@@ -30,7 +29,7 @@ defineTests() {
       MockFileSystem fs = new MockFileSystem();
       return FileOps.createFileWithContent(
               fs.root, 'test/a/b.txt', FILE_CONTENT, 'Text')
-          .then((ChromeFileEntry entry) {
+          .then((File entry) {
         expect(fs.getEntry('test'), isNotNull);
         expect(fs.getEntry('test/a'), isNotNull);
         expect(entry.fullPath, '/root/test/a/b.txt');

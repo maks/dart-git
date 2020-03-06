@@ -9,29 +9,26 @@ library spark.files_mock;
 
 import 'dart:async';
 
-import 'package:dart_git/src/entry.dart';
+import 'package:dart_git/src/file_io.dart';
 import 'package:mime/mime.dart' as mime;
 import 'package:path/path.dart' as path;
-
-export 'package:dart_git/src/entry.dart'
-    show Entry, FileEntry, DirectoryEntry, ChromeFileEntry;
 
 /**
  * A mutable, memory resident file system.
  */
 class MockFileSystem implements FileSystem {
   final String name;
-  _MockDirectoryEntry _root;
+  _MockDirectory _root;
 
   MockFileSystem([this.name]) {
-    _root = new _RootDirectoryEntry(this, 'root');
+    _root = new _RootDirectory(this, 'root');
   }
 
-  DirectoryEntry get root => _root;
+  Directory get root => _root;
 
   // Utility methods.
 
-  FileEntry createFile(String filePath, {String contents}) {
+  File createFile(String filePath, {String contents}) {
     if (filePath.startsWith('/')) {
       filePath = filePath.substring(1);
     }
@@ -42,7 +39,7 @@ class MockFileSystem implements FileSystem {
     if (dirPath == '.') {
       return _root._createFile(filePath, contents: contents);
     } else {
-      _MockDirectoryEntry dir = createDirectory(dirPath);
+      _MockDirectory dir = createDirectory(dirPath);
       return dir._createFile(fileName, contents: contents);
     }
   }
@@ -58,15 +55,15 @@ class MockFileSystem implements FileSystem {
     if (dirPath == '.') {
       _root._removeFile(filePath);
     } else {
-      _MockDirectoryEntry dir = getEntry(dirPath);
-      if (dir is! DirectoryEntry) {
+      _MockDirectory dir = getEntry(dirPath);
+      if (dir is! Directory) {
         return;
       }
       dir._removeFile(fileName);
     }
   }
 
-  DirectoryEntry createDirectory(String filePath) {
+  Directory createDirectory(String filePath) {
     if (filePath.startsWith('/')) {
       filePath = filePath.substring(1);
     }
@@ -77,7 +74,7 @@ class MockFileSystem implements FileSystem {
     if (dirPath == '.') {
       return _root._createDirectory(filePath);
     } else {
-      _MockDirectoryEntry dir = createDirectory(dirPath);
+      _MockDirectory dir = createDirectory(dirPath);
       return dir._createDirectory(fileName);
     }
   }
@@ -105,9 +102,9 @@ class MockFileSystem implements FileSystem {
 /**
  * Create a simple sample directory.
  */
-DirectoryEntry createSampleDirectory1(String name) {
+Directory createSampleDirectory1(String name) {
   MockFileSystem fs = new MockFileSystem();
-  DirectoryEntry directory = fs.createDirectory(name);
+  Directory directory = fs.createDirectory(name);
   fs.createFile('${name}/bar.txt', contents: '123');
   fs.createFile('${name}/web/index.html',
       contents:
@@ -121,9 +118,9 @@ DirectoryEntry createSampleDirectory1(String name) {
 /**
  * Create a sample directory, with one Dart file referencing another.
  */
-DirectoryEntry createSampleDirectory2(String name) {
+Directory createSampleDirectory2(String name) {
   MockFileSystem fs = new MockFileSystem();
-  DirectoryEntry directory = fs.createDirectory(name);
+  Directory directory = fs.createDirectory(name);
   fs.createFile('${name}/web/index.html',
       contents:
           '<html><body><script type="application/dart" src="sample.dart"></script></body></html>');
@@ -138,9 +135,9 @@ DirectoryEntry createSampleDirectory2(String name) {
 /**
  * Create a sample directory with a package reference.
  */
-DirectoryEntry createSampleDirectory3(String name) {
+Directory createSampleDirectory3(String name) {
   MockFileSystem fs = new MockFileSystem();
-  DirectoryEntry directory = fs.createDirectory(name);
+  Directory directory = fs.createDirectory(name);
   fs.createFile('${name}/pubspec.yaml', contents: 'name: ${name}\n');
   fs.createFile('${name}/web/index.html',
       contents:
@@ -157,28 +154,29 @@ DirectoryEntry createSampleDirectory3(String name) {
 /**
  * Create a directory with a dart file with given name and contents.
  */
-DirectoryEntry createDirectoryWithDartFile(String name, String contents) {
+Directory createDirectoryWithDartFile(String name, String contents) {
   MockFileSystem fs = new MockFileSystem();
-  DirectoryEntry directory = fs.createDirectory(name);
+  Directory directory = fs.createDirectory(name);
   fs.createFile('${name}/web/sample.dart', contents: contents);
   return directory;
 }
 
-Future<workspace.Project> linkSampleProject(DirectoryEntry dir,
+Future<workspace.Project> linkSampleProject(Directory dir,
     [workspace.Workspace ws]) {
   if (ws == null) ws = new workspace.Workspace();
   return ws.link(createWsRoot(dir));
 }
 
-MockWorkspaceRoot createWsRoot(Entry entry) => new MockWorkspaceRoot(entry);
+MockWorkspaceRoot createWsRoot(FileSystemEntity entry) =>
+    new MockWorkspaceRoot(entry);
 
 class MockWorkspaceRoot extends workspace.WorkspaceRoot {
-  MockWorkspaceRoot(Entry entry) {
+  MockWorkspaceRoot(FileSystemEntity entry) {
     this.entry = entry;
   }
 
   workspace.Resource createResource(workspace.Workspace ws) {
-    if (entry is FileEntry) {
+    if (entry is File) {
       return new workspace.LooseFile(ws, this);
     } else {
       return new workspace.Project(ws, this);
@@ -191,11 +189,11 @@ class MockWorkspaceRoot extends workspace.WorkspaceRoot {
 
   Future restore() => new Future.value();
 
-  String retainEntry(Entry entry) => entry.name;
-  Future<Entry> restoreEntry(String id) => new Future.value(entry);
+  String retainEntry(FileSystemEntity entry) => entry.name;
+  Future<FileSystemEntity> restoreEntry(String id) => new Future.value(entry);
 }
 
-abstract class _MockEntry implements Entry {
+abstract class _MockEntry implements FileSystemEntity {
   String name;
 
   _MockDirectoryEntry _parent;
@@ -208,7 +206,7 @@ abstract class _MockEntry implements Entry {
   String get fullPath => _isRoot ? '/${name}' : '${_parent.fullPath}/${name}';
 
   // TODO:
-  Future<Entry> copyTo(DirectoryEntry parent, {String name}) {
+  Future<FileSystemEntity> copyTo(Directory parent, {String name}) {
     throw new UnimplementedError('Entry.copyTo()');
   }
 
@@ -218,22 +216,23 @@ abstract class _MockEntry implements Entry {
 
   Future<Metadata> getMetadata() => new Future.value(new _MockMetadata(this));
 
-  Future<Entry> getParent() => new Future.value(_isRoot ? this : _parent);
+  Future<FileSystemEntity> getParent() =>
+      new Future.value(_isRoot ? this : _parent);
 
   // TODO:
-  Future<Entry> moveTo(DirectoryEntry parent, {String name}) {
+  Future<FileSystemEntity> moveTo(Directory parent, {String name}) {
     remove();
     if (parent == null) {
       parent = (filesystem as MockFileSystem)._root;
     }
-    assert(this is _MockFileEntry || this is _MockDirectoryEntry);
+    assert(this is _MockFile || this is _MockDirectory);
     _MockEntry result = null;
     String resultEntryName = name != null ? name : this.name;
     result = this.clone();
     result.name = resultEntryName;
     result._parent = parent;
-    (parent as _MockDirectoryEntry)._children.add(result);
-    (parent as _MockDirectoryEntry)._touch();
+    (parent as _MockDirectory)._children.add(result);
+    (parent as _MockDirectory)._touch();
     return new Future.value(result);
   }
 
@@ -250,11 +249,11 @@ abstract class _MockEntry implements Entry {
   int get _size;
 }
 
-class _MockFileEntry extends _MockEntry implements FileEntry, ChromeFileEntry {
+class _MockFile extends _MockEntry implements File {
   String _contents;
   List<int> _byteContents;
 
-  _MockFileEntry(DirectoryEntry parent, String name) : super(parent, name);
+  _MockFileEntry(Directory parent, String name) : super(parent, name);
 
   bool get isDirectory => false;
   bool get isFile => true;
@@ -306,7 +305,7 @@ class _MockFileEntry extends _MockEntry implements FileEntry, ChromeFileEntry {
     return new Future.value();
   }
 
-  Entry _getChild(String name) => null;
+  FileSystemEntity _getChild(String name) => null;
 
   int get _size {
     if (_contents != null) return _contents.length;
@@ -321,13 +320,13 @@ class _MockFileEntry extends _MockEntry implements FileEntry, ChromeFileEntry {
   JsObject blink_jsObject;
 }
 
-class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
-  List<Entry> _children = [];
+class _MockDirectory extends _MockEntry implements Directory {
+  List<FileSystemEntity> _children = [];
 
-  _MockDirectoryEntry(DirectoryEntry parent, String name) : super(parent, name);
+  _MockDirectory(Directory parent, String name) : super(parent, name);
 
-  _MockDirectoryEntry clone() {
-    _MockDirectoryEntry result = new _MockDirectoryEntry(null, name);
+  _MockDirectory clone() {
+    _MockDirectory result = new _MockDirectory(null, name);
     for (_MockEntry child in _children) {
       result._children.add(child);
       child._parent = result;
@@ -346,13 +345,14 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
     }
   }
 
-  Future _remove(Entry e) {
+  Future _remove(FileSystemEntity e) {
     _children.remove(e);
     _touch();
     return new Future.value();
   }
 
-  Future<Entry> createDirectory(String path, {bool exclusive: false}) {
+  Future<FileSystemEntity> createDirectory(String path,
+      {bool exclusive: false}) {
     if (_getChild(path) != null && exclusive) {
       return new Future.error('directory already exists');
     } else {
@@ -360,7 +360,7 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
     }
   }
 
-  Future<Entry> createFile(String path, {bool exclusive: false}) {
+  Future<FileSystemEntity> createFile(String path, {bool exclusive: false}) {
     if (_getChild(path) != null && exclusive) {
       return new Future.error('file already exists');
     } else {
@@ -371,25 +371,25 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
   DirectoryReader createReader() => new _MockDirectoryReader(this);
 
   Future<Entry> getDirectory(String path) {
-    Entry entry = _getChild(path);
+    FileSystemEntity entry = _getChild(path);
 
-    if (entry is! DirectoryEntry) {
+    if (entry is! Directory) {
       return new Future.error("directory doesn't exist");
     } else {
       return new Future.value(_createDirectory(path));
     }
   }
 
-  Future<Entry> getFile(String path) {
+  Future<FileSystemEntity> getFile(String path) {
     List<String> pathParts = path.split('/');
-    Entry entry = _getChild(pathParts[0]);
+    FileSystemEntity entry = _getChild(pathParts[0]);
     int i = 1;
 
     while (entry != null && entry.isDirectory && i < pathParts.length) {
-      entry = (entry as _MockDirectoryEntry)._getChild(pathParts[i++]);
+      entry = (entry as _MockDirectory)._getChild(pathParts[i++]);
     }
 
-    if (entry is! FileEntry) {
+    if (entry is! File) {
       return new Future.error("file doesn't exist");
     } else {
       return new Future.value(entry);
@@ -398,13 +398,13 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
 
   Future removeRecursively() => _parent._remove(this);
 
-  FileEntry _createFile(String name, {String contents}) {
-    _MockFileEntry entry = _getChild(name);
+  File _createFile(String name, {String contents}) {
+    _MockFile entry = _getChild(name);
     if (entry != null) return entry;
 
     _touch();
 
-    entry = new _MockFileEntry(this, name);
+    entry = new _MockFile(this, name);
     _children.add(entry);
     if (contents != null) {
       entry._contents = contents;
@@ -412,19 +412,19 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
     return entry;
   }
 
-  DirectoryEntry _createDirectory(String name) {
-    _MockDirectoryEntry entry = _getChild(name);
+  Directory _createDirectory(String name) {
+    _MockDirectory entry = _getChild(name);
     if (entry != null) return entry;
 
     _touch();
 
-    entry = new _MockDirectoryEntry(this, name);
+    entry = new _MockDirectory(this, name);
     _children.add(entry);
     return entry;
   }
 
-  Future<Entry> _removeFile(String name) {
-    _MockFileEntry entry = _getChild(name);
+  Future<FileSystemEntity> _removeFile(String name) {
+    _MockFile entry = _getChild(name);
     if (entry == null) {
       return new Future.value();
     }
@@ -432,8 +432,8 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
     return _remove(entry);
   }
 
-  Entry _getChild(String name) {
-    for (Entry entry in _children) {
+  FileSystemEntity _getChild(String name) {
+    for (FileSystemEntity entry in _children) {
       if (entry.name == name) return entry;
     }
 
@@ -443,18 +443,19 @@ class _MockDirectoryEntry extends _MockEntry implements DirectoryEntry {
   int get _size => 0;
 }
 
-class _RootDirectoryEntry extends _MockDirectoryEntry {
+class _RootDirectory extends _MockDirectory {
   final FileSystem filesystem;
 
-  _RootDirectoryEntry(this.filesystem, String name) : super(null, name);
+  _RootDirectory(this.filesystem, String name) : super(null, name);
 }
 
 class _MockDirectoryReader implements DirectoryReader {
-  _MockDirectoryEntry dir;
+  _MockDirectory dir;
 
   _MockDirectoryReader(this.dir);
 
-  Future<List<Entry>> readEntries() => new Future.value(dir._children);
+  Future<List<FileSystemEntity>> readEntries() =>
+      new Future.value(dir._children);
 }
 
 class _MockMetadata implements Metadata {
@@ -465,39 +466,4 @@ class _MockMetadata implements Metadata {
   DateTime get modificationTime => entry._modificationTime;
 
   int get size => entry._size;
-}
-
-abstract class _MockBlob implements Blob {
-  int get size;
-  Blob slice([int start, int end, String contentType]);
-  String get type;
-  void close();
-}
-
-class _MockFile extends _MockBlob implements File {
-  final _MockEntry entry;
-
-  _MockFile(this.entry);
-
-  int get lastModified => lastModifiedDate.millisecondsSinceEpoch;
-
-  DateTime get lastModifiedDate => entry._modificationTime;
-
-  String get name => entry.name;
-
-  String get relativePath => entry._path;
-
-  int get size => entry._size;
-
-  // TODO:
-  Blob slice([int start, int end, String contentType]) {
-    throw new UnimplementedError('Blob.slice()');
-  }
-
-  String get type {
-    String _type = mime.lookupMimeType(name);
-    return _type == null ? '' : _type;
-  }
-
-  void close() {}
 }

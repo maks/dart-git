@@ -1,13 +1,10 @@
 // Copyright (c) 2014, Google Inc. Please see the AUTHORS file for details.
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-library git.logger;
-
 import 'dart:async';
-import 'package:dart_git/src/entry.dart';
 
 import 'constants.dart';
+import 'file_io.dart';
 import 'file_operations.dart';
 import 'options.dart';
 import 'utils.dart';
@@ -29,7 +26,7 @@ class Logger {
     ].join(" ");
     logString += '\n';
     String path = '${LOGS_DIR}HEAD';
-    return options.root.createDirectory(path).then((ChromeFileEntry entry) {
+    return options.root.createDirectory(path).then((File entry) {
       return entry.readText().then((String text) {
         return FileOps.createFileWithContent(
             options.root, path, text + logString, 'Text');
@@ -37,7 +34,7 @@ class Logger {
     });
   }
 
-  static Future _createAndGetFile(DirectoryEntry root, String path) {
+  static Future _createAndGetFile(Directory root, String path) {
     return root.getFile(path).then((entry) => entry).catchError((e) {
       return FileOps.createFileWithContent(root, path, '', 'Text');
     });

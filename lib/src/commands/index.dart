@@ -153,10 +153,8 @@ class Index {
    * Reads the index file and loads it.
    */
   Future readIndex() {
-    return _store.root
-        .getDirectory(GIT_FOLDER_PATH)
-        .then((DirectoryEntry entry) {
-      return entry.getFile('index2').then((ChromeFileEntry entry) {
+    return _store.root.getDirectory(GIT_FOLDER_PATH).then((Directory entry) {
+      return entry.getFile('index2').then((File entry) {
         return entry.readText().then((String content) {
           JsonDecoder decoder = new JsonDecoder(null);
           Map out = decoder.convert(content);
@@ -177,9 +175,7 @@ class Index {
     _writingIndex = true;
     _writeIndexCompleter = new Completer();
     String out = JSON.encode(statusIdxToMap());
-    return _store.root
-        .getDirectory(GIT_FOLDER_PATH)
-        .then((DirectoryEntry entry) {
+    return _store.root.getDirectory(GIT_FOLDER_PATH).then((Directory entry) {
       return FileOps.createFileWithContent(entry, 'index2', out, 'Text')
           .then((_) {
         Completer completer = _writeIndexCompleter;
@@ -256,15 +252,15 @@ class Index {
    * working tree.
    */
   Future<List<FileStatus>> walkFilesAndUpdateIndex(
-      DirectoryEntry root, bool updateSha) {
+      Directory root, bool updateSha) {
     List<FileStatus> fileStatuses = [];
-    return FileOps.listFiles(root).then((List<ChromeFileEntry> entries) {
+    return FileOps.listFiles(root).then((List<File> entries) {
       if (entries.isEmpty) {
         deleteIndexForEntry(root.fullPath);
         return fileStatuses;
       }
 
-      return Future.forEach(entries, (Entry entry) {
+      return Future.forEach(entries, (FileSystemEntity entry) {
         if ((_store.root.fullPath + '.git') == entry.fullPath) {
           return fileStatuses;
         }
@@ -303,7 +299,7 @@ class Index {
     });
   }
 
-  Future _updateSha(FileEntry entry) {
+  Future _updateSha(File entry) {
     FileStatus status = _statusIdx[entry.fullPath];
     return entry.getMetadata().then((data) {
       if (status.modificationTime ==

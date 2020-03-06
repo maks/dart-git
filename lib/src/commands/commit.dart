@@ -6,20 +6,19 @@ library git.commands.commit;
 
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:dart_git/src/entry.dart';
 
-import 'constants.dart';
-import 'ignore.dart';
-import 'index.dart';
-import 'status.dart';
-import '../file_operations.dart';
 import '../exception.dart';
+import '../file_operations.dart';
 import '../object.dart';
 import '../object_utils.dart';
 import '../objectstore.dart';
 import '../options.dart';
 import '../permissions.dart';
 import '../utils.dart';
+import 'constants.dart';
+import 'ignore.dart';
+import 'index.dart';
+import 'status.dart';
 
 /**
  * This class implments the git commit command.
@@ -29,15 +28,15 @@ class Commit {
    * Walks over all the files in the working tree. Returns sha of the
    * working tree.
    */
-  static Future<String> walkFiles(DirectoryEntry root, ObjectStore store) {
-    return FileOps.listFiles(root).then((List<ChromeFileEntry> entries) {
+  static Future<String> walkFiles(Directory root, ObjectStore store) {
+    return FileOps.listFiles(root).then((List<File> entries) {
       if (entries.isEmpty) {
         return null;
       }
 
       List<TreeEntry> treeEntries = [];
 
-      return Future.forEach(entries, (Entry entry) {
+      return Future.forEach(entries, (FileSystemEntity entry) {
         if (entry.name == '.git') {
           return null;
         }
@@ -50,7 +49,7 @@ class Commit {
             }
           });
         } else {
-          ChromeFileEntry fileEntry = entry;
+          File fileEntry = entry;
 
           if (GitIgnore.ignore(entry.fullPath)) {
             return new Future.value();
@@ -99,7 +98,7 @@ class Commit {
    * [options.commitMessage] as commit message.
    */
   static Future commit(GitOptions options) {
-    DirectoryEntry dir = options.root;
+    Directory dir = options.root;
     ObjectStore store = options.store;
 
     return Status.isWorkingTreeClean(store).then((_) {

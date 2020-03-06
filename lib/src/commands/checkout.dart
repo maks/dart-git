@@ -5,9 +5,7 @@
 library git.commands.checkout;
 
 import 'dart:async';
-import 'package:dart_git/src/entry.dart';
 
-import 'treediff.dart';
 import '../constants.dart';
 import '../exception.dart';
 import '../file_operations.dart';
@@ -16,13 +14,14 @@ import '../object_utils.dart';
 import '../objectstore.dart';
 import '../options.dart';
 import 'status.dart';
+import 'treediff.dart';
 
 /**
  * This class implments the git checkout command.
  */
 class Checkout {
   static Future _removeEntryRecursively(
-      ObjectStore store, DirectoryEntry dir, TreeEntry treeEntry) {
+      ObjectStore store, Directory dir, TreeEntry treeEntry) {
     if (treeEntry.isBlob) {
       return dir.getFile(treeEntry.name).then((fileEntry) {
         store.index.deleteIndexForEntry(fileEntry.fullPath);
@@ -48,7 +47,7 @@ class Checkout {
     });
   }
 
-  static Future smartCheckout(DirectoryEntry dir, ObjectStore store,
+  static Future smartCheckout(Directory dir, ObjectStore store,
       TreeObject oldTree, TreeObject newTree) {
     TreeDiffResult diff = TreeDiff.diffTree(oldTree, newTree);
     return Future.forEach(diff.getAddedEntries(), (DiffEntry diffEntry) {
@@ -110,7 +109,7 @@ class Checkout {
 
   static Future _checkout(
       GitOptions options, String currentSha, String newSha) {
-    DirectoryEntry root = options.root;
+    Directory root = options.root;
     ObjectStore store = options.store;
     String branch = options.branchName;
 

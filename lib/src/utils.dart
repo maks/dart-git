@@ -46,7 +46,7 @@ String shaBytesToString(List<int> sha) {
   return buf.toString();
 }
 
-Future<String> getShaForEntry(ChromeFileEntry entry, String type) {
+Future<String> getShaForEntry(File entry, String type) {
   return entry.readBytes().then((ArrayBuffer content) {
     return getShaStringForData(content.getBytes(), type);
   });
@@ -76,11 +76,11 @@ List<int> getShaAsBytes(List<int> data) {
 /**
  * Clears the given working directory.
  */
-Future cleanWorkingDir(DirectoryEntry root) {
-  return FileOps.listFiles(root).then((List<DirectoryEntry> entries) {
-    return Future.forEach(entries, (Entry entry) {
+Future cleanWorkingDir(Directory root) {
+  return FileOps.listFiles(root).then((List<Directory> entries) {
+    return Future.forEach(entries, (FileSystemEntity entry) {
       if (entry.isDirectory) {
-        DirectoryEntry dirEntry = entry;
+        Directory dirEntry = entry;
         // Do not remove the .git directory.
         if (entry.name == '.git') {
           return null;

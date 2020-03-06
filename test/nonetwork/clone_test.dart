@@ -6,6 +6,7 @@ library git_no_network_clone_test;
 
 import 'package:dart_git/src/commands/clone.dart';
 import 'package:dart_git/src/exception.dart';
+import 'package:dart_git/src/file_io.dart';
 import 'package:dart_git/src/http_fetcher.dart';
 import 'package:dart_git/src/objectstore.dart';
 import 'package:dart_git/src/options.dart';
@@ -101,7 +102,7 @@ defineTests() {
   group('git.nonetwork.clone', () {
     test('invalid repo', () {
       MockFileSystem fs = new MockFileSystem();
-      DirectoryEntry dir = fs.createDirectory('test/git/clone');
+      Directory dir = fs.createDirectory('test/git/clone');
       GitOptions options = new GitOptions(
           root: dir,
           repoUrl: "https://github.com/gaurave/invalid.git",
@@ -116,7 +117,7 @@ defineTests() {
 
     test('private repo with credentials', () {
       MockFileSystem fs = new MockFileSystem();
-      DirectoryEntry dir = fs.createDirectory('test/git/clone');
+      Directory dir = fs.createDirectory('test/git/clone');
       GitOptions options = new GitOptions(
           root: dir,
           repoUrl: "https://github.com/gaurave/spark-t.git",
@@ -133,7 +134,7 @@ defineTests() {
 
   test('private repo with no credentials', () {
     MockFileSystem fs = new MockFileSystem();
-    DirectoryEntry dir = fs.createDirectory('test/git/clone');
+    Directory dir = fs.createDirectory('test/git/clone');
     GitOptions options = new GitOptions(
         root: dir,
         repoUrl: "https://github.com/gaurave/spark-t.git",
@@ -150,7 +151,7 @@ defineTests() {
 
   test('valid repo ending with .git', () {
     MockFileSystem fs = new MockFileSystem();
-    DirectoryEntry dir = fs.createDirectory('test/git/clone');
+    Directory dir = fs.createDirectory('test/git/clone');
     GitOptions options = new GitOptions(
         root: dir,
         repoUrl: "https://github.com/gaurave/spark.git",
@@ -165,7 +166,7 @@ defineTests() {
 
   test('valid repo not ending with .git', () {
     MockFileSystem fs = new MockFileSystem();
-    DirectoryEntry dir = fs.createDirectory('test/git/clone');
+    Directory dir = fs.createDirectory('test/git/clone');
     GitOptions options = new GitOptions(
         root: dir,
         repoUrl: "https://github.com/gaurave/spark",
@@ -180,7 +181,7 @@ defineTests() {
 
   test('valid repo if dot git appended', () {
     MockFileSystem fs = new MockFileSystem();
-    DirectoryEntry dir = fs.createDirectory('test/git/clone');
+    Directory dir = fs.createDirectory('test/git/clone');
     GitOptions options = new GitOptions(
         root: dir,
         repoUrl: "https://github.com/gaurave/spark",

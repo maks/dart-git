@@ -2,7 +2,7 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-import 'package:dart_git/src/entry.dart';
+import 'package:dart_git/src/file_io.dart';
 import 'package:test/test.dart';
 
 import 'dart:typed_data';
@@ -15,9 +15,9 @@ final String PACK_INDEX_FILE_PATH = 'test/data/pack-_index_test.idx';
 defineTests() {
   group('git.pack', () {
     test('parsePack', () {
-      return getPackageDirectoryEntry().then((DirectoryEntry dir) {
+      return getPackageDirectoryEntry().then((Directory dir) {
         print('got dir');
-        return dir.getFile(PACK_FILE_PATH).then((ChromeFileEntry entry) {
+        return dir.getFile(PACK_FILE_PATH).then((File entry) {
           print('got ${PACK_FILE_PATH}');
           return entry.readBytes().then((ArrayBuffer binaryData) {
             print('got bytes');

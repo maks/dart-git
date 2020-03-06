@@ -9,20 +9,18 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:js';
 import 'dart:typed_data';
-import 'package:dart_git/src/entry.dart';
 
+import 'commands/index.dart';
 import 'config.dart';
 import 'constants.dart';
 import 'exception.dart';
 import 'fast_sha.dart';
 import 'file_operations.dart';
-import 'commands/index.dart';
 import 'object.dart';
 import 'object_utils.dart';
 import 'pack.dart';
 import 'pack_index.dart';
 import 'utils.dart';
-
 import 'zlib.dart';
 
 /**
@@ -73,10 +71,10 @@ class CommitGraph {
 
 class ObjectStore {
   // The root directory of the git checkout the objectstore represents.
-  DirectoryEntry _rootDir;
+  Directory _rootDir;
 
   // The root directory of the objects the objectstore represnts.
-  DirectoryEntry objectDir;
+  Directory objectDir;
 
   // Git directory path.
   String gitPath = '.git/';
@@ -87,15 +85,15 @@ class ObjectStore {
 
   Index index;
 
-  DirectoryEntry get root => _rootDir;
+  Directory get root => _rootDir;
 
-  ObjectStore(DirectoryEntry root) {
+  ObjectStore(Directory root) {
     _rootDir = root;
     index = new Index(this);
     config = new Config();
   }
 
-  loadWith(DirectoryEntry objectDir, List<PackEntry> packs) {
+  loadWith(Directory objectDir, List<PackEntry> packs) {
     this.objectDir = objectDir;
     this.packs = packs;
   }
@@ -104,12 +102,13 @@ class ObjectStore {
     return _rootDir.getDirectory(GIT_FOLDER_PATH).then((gitDir) {
       return gitDir.getDirectory(OBJECT_FOLDER_PATH).then((objectsDir) {
         objectDir = objectsDir;
-        return objectsDir.getDirectory('pack').then((DirectoryEntry packDir) {
-          return FileOps.listFiles(packDir).then((List<Entry> entries) {
-            Iterable<Entry> packEntries =
+        return objectsDir.getDirectory('pack').then((Directory packDir) {
+          return FileOps.listFiles(packDir)
+              .then((List<FileSystemEntity> entries) {
+            Iterable<FileSystemEntity> packEntries =
                 entries.where((e) => e.name.endsWith('.pack'));
 
-            return Future.forEach(packEntries, (Entry entry) {
+            return Future.forEach(packEntries, (FileSystemEntity entry) {
               return _readPackEntry(packDir, entry);
             }).then((_) {
               return _initHelper();
@@ -141,23 +140,23 @@ class ObjectStore {
     });
   }
 
-  Future<FileEntry> createRemoteRef(String refName, String sha) =>
+  Future<File> createRemoteRef(String refName, String sha) =>
       _createNewRef(GIT_REFS_REMOTES_ORIGIN_PATH + refName, sha);
 
-  Future<FileEntry> createLocalRef(String refName, String sha) =>
+  Future<File> createLocalRef(String refName, String sha) =>
       _createNewRef(GIT_REFS_HEADS_PATH + refName, sha);
 
-  Future<FileEntry> _createNewRef(String path, String sha) =>
+  Future<File> _createNewRef(String path, String sha) =>
       FileOps.createFileWithContent(_rootDir, path, sha + '\n', "Text");
 
-  Future<FileEntry> setHeadRef(String refName) {
+  Future<File> setHeadRef(String refName) {
     String content = 'ref: ${refName}\n';
     return FileOps.createFileWithContent(
         _rootDir, gitPath + HEAD_PATH, content, "Text");
   }
 
   Future<String> getHeadRef() {
-    return _rootDir.getFile(gitPath + HEAD_PATH).then((FileEntry entry) {
+    return _rootDir.getFile(gitPath + HEAD_PATH).then((File entry) {
       return FileOps.readBytes(entry).then((List<int> data) {
         // Get rid of the initial 'ref: ' plus newline at end.
         String content = utf8.decode(data);
@@ -173,7 +172,7 @@ class ObjectStore {
 
   Future<Iterable<String>> getLocalHeads() {
     return _rootDir.getDirectory(GIT_REFS_HEADS_PATH).then((dir) {
-      return FileOps.listFiles(dir).then((List<Entry> entries) {
+      return FileOps.listFiles(dir).then((List<FileSystemEntity> entries) {
         return entries.map((entry) => entry.name);
       });
     });
@@ -181,7 +180,7 @@ class ObjectStore {
 
   Future<Iterable<String>> getRemoteHeads() {
     return _rootDir.getDirectory(GIT_REFS_REMOTES_ORIGIN_PATH).then((dir) {
-      return FileOps.listFiles(dir).then((List<Entry> entries) {
+      return FileOps.listFiles(dir).then((List<FileSystemEntity> entries) {
         return entries.map((entry) => entry.name);
       });
     });
@@ -214,7 +213,7 @@ class ObjectStore {
     });
   }
 
-  Future _readPackEntry(DirectoryEntry packDir, FileEntry entry) {
+  Future _readPackEntry(Directory packDir, File entry) {
     return FileOps.readBytes(entry).then((List<int> packData) {
       String path =
           entry.name.substring(0, entry.name.lastIndexOf('.pack')) + '.idx';
@@ -227,7 +226,7 @@ class ObjectStore {
     });
   }
 
-  Future<Entry> _findLooseObject(String sha) {
+  Future<FileSystemEntity> _findLooseObject(String sha) {
     return objectDir.getFile(sha.substring(0, 2) + '/' + sha.substring(2));
   }
 
@@ -265,7 +264,7 @@ class ObjectStore {
       shaBytes = sha;
       sha = shaBytesToString(shaBytes);
     }
-    return this._findLooseObject(sha).then((ChromeFileEntry entry) {
+    return this._findLooseObject(sha).then((FileSystemEntity entry) {
       return entry.readBytes().then((ArrayBuffer buffer) {
         List<int> inflated = Zlib.inflate(buffer.getBytes()).data;
         if (dataType == 'Raw' || dataType == 'ArrayBuffer') {
@@ -503,9 +502,9 @@ class ObjectStore {
   }
 
   Future init() {
-    return _rootDir.getDirectory('.git').then((DirectoryEntry gitDir) {
+    return _rootDir.getDirectory('.git').then((Directory gitDir) {
       return load();
-    }, onError: (FileError e) {
+    }, onError: (Error e) {
       return _init();
     });
   }
@@ -513,7 +512,7 @@ class ObjectStore {
   Future _init() {
     return FileOps.createDirectoryRecursive(
             _rootDir, gitPath + OBJECT_FOLDER_PATH)
-        .then((DirectoryEntry objectDir) {
+        .then((Directory objectDir) {
       this.objectDir = objectDir;
       return FileOps.createFileWithContent(_rootDir, gitPath + HEAD_PATH,
               GIT_HEAD_FILE_DEFAULT_CONTENT, 'Text')
@@ -619,10 +618,8 @@ class ObjectStore {
     String subDirName = digest.substring(0, 2);
     String objectFileName = digest.substring(2);
 
-    return objectDir.createDirectory(subDirName).then(
-        (DirectoryEntry dirEntry) {
-      return dirEntry.createFile(objectFileName).then(
-          (ChromeFileEntry fileEntry) {
+    return objectDir.createDirectory(subDirName).then((Directory dirEntry) {
+      return dirEntry.createFile(objectFileName).then((File fileEntry) {
         return fileEntry.file().then((File file) {
           Future<String> writeContent() {
             ArrayBuffer content =

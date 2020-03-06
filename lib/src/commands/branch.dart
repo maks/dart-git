@@ -42,7 +42,7 @@ class Branch {
   /**
    * Creates a new branch. Throws error if the branch already exist.
    */
-  static Future<FileEntry> branch(GitOptions options, String sourceBranchName) {
+  static Future<File> branch(GitOptions options, String sourceBranchName) {
     ObjectStore store = options.store;
     String branchName = options.branchName;
 

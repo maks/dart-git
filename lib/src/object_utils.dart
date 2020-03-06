@@ -6,8 +6,6 @@ library git.objects.utils;
 
 import 'dart:async';
 import 'dart:core';
-import 'package:dart_git/src/entry.dart';
-
 import 'file_operations.dart';
 import 'commands/index.dart';
 import 'object.dart';
@@ -78,7 +76,7 @@ abstract class ObjectUtils {
   /**
    * Expands a git blob object into a file and writes on disc.
    */
-  static Future<Entry> expandBlob(DirectoryEntry dir, ObjectStore store,
+  static Future<Entry> expandBlob(Directory dir, ObjectStore store,
       String fileName, String blobSha, String permission) {
     return store
         .retrieveObject(blobSha, ObjectTypes.BLOB_STR)
@@ -104,15 +102,14 @@ abstract class ObjectUtils {
   /**
    * Expand a git tree object into files and writes on disk.
    */
-  static Future expandTree(
-      DirectoryEntry dir, ObjectStore store, String treeSha) {
+  static Future expandTree(Directory dir, ObjectStore store, String treeSha) {
     return store.retrieveObject(treeSha, "Tree").then((GitObject tree) {
       return Future.forEach((tree as TreeObject).entries, (TreeEntry entry) {
         if (entry.isBlob) {
           return expandBlob(
               dir, store, entry.name, entry.sha, entry.permission);
         } else {
-          return dir.createDirectory(entry.name).then((DirectoryEntry newDir) {
+          return dir.createDirectory(entry.name).then((Directory newDir) {
             return expandTree(newDir, store, entry.sha);
           });
         }
