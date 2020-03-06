@@ -2,10 +2,9 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 import 'dart:async';
-
+import 'package:path/path.dart' as p;
 import 'constants.dart';
 import 'file_io.dart';
-import 'file_operations.dart';
 import 'options.dart';
 import 'utils.dart';
 
@@ -13,8 +12,8 @@ import 'utils.dart';
  * Logs the git commands. These logs are consumend in restoring git state.
  */
 class Logger {
-  static Future log(
-      GitOptions options, String fromSha, String toSha, String message) {
+  static Future<File> log(
+      GitOptions options, String fromSha, String toSha, String message) async {
     String dateString = getCurrentTimeAsString();
     String logString = [
       fromSha,
@@ -25,18 +24,12 @@ class Logger {
       message
     ].join(" ");
     logString += '\n';
-    String path = '${LOGS_DIR}HEAD';
-    return options.root.createDirectory(path).then((File entry) {
-      return entry.readText().then((String text) {
-        return FileOps.createFileWithContent(
-            options.root, path, text + logString, 'Text');
-      });
-    });
-  }
 
-  static Future _createAndGetFile(Directory root, String path) {
-    return root.getFile(path).then((entry) => entry).catchError((e) {
-      return FileOps.createFileWithContent(root, path, '', 'Text');
-    });
+    // make sure logs dir exists first
+    final logDir =
+        await Directory(p.join(options.root.path, LOGS_DIR)).create();
+
+    return File(p.join(logDir.path, 'HEAD'))
+        .writeAsString(logString, mode: FileMode.append);
   }
 }

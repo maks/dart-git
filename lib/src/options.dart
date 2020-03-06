@@ -2,10 +2,6 @@
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-library git.options;
-
-import 'dart:js' as js;
-
 import 'file_io.dart';
 import 'objectstore.dart';
 
@@ -44,22 +40,6 @@ class GitOptions {
       this.name,
       this.username,
       this.password});
-
-  js.JsObject toJsMap() {
-    Map<String, dynamic> options = new Map<String, dynamic>();
-
-    options['dir'] = this.root;
-    options['username'] = this.username;
-    options['password'] = this.password;
-    options['branch'] = this.branchName;
-    options['email'] = this.email;
-    options['name'] = this.name;
-    options['depth'] = this.depth;
-    options['url'] = this.repoUrl;
-    options['progress'] = this.progressCallback;
-    options['commitMsg'] = this.commitMessage;
-    return new js.JsObject.jsify(options);
-  }
 
   // TODO(grv): Specialize the verification for different api methods.
   bool verify() {
