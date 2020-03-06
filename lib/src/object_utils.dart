@@ -6,8 +6,8 @@ library git.objects.utils;
 
 import 'dart:async';
 import 'dart:core';
-import 'file_operations.dart';
 import 'commands/index.dart';
+import 'file_io.dart';
 import 'object.dart';
 import 'objectstore.dart';
 
@@ -76,14 +76,14 @@ abstract class ObjectUtils {
   /**
    * Expands a git blob object into a file and writes on disc.
    */
-  static Future<Entry> expandBlob(Directory dir, ObjectStore store,
+  static Future<FileSystemEntity> expandBlob(Directory dir, ObjectStore store,
       String fileName, String blobSha, String permission) {
     return store
         .retrieveObject(blobSha, ObjectTypes.BLOB_STR)
         .then((BlobObject blob) {
       return FileOps.createFileWithContent(
               dir, fileName, blob.data, ObjectTypes.BLOB_STR)
-          .then((Entry entry) {
+          .then((FileSystemEntity entry) {
         return entry.getMetadata().then((data) {
           FileStatus status = new FileStatus();
           status.path = entry.fullPath;

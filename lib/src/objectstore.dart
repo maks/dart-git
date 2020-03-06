@@ -7,7 +7,6 @@ library git.objectstore;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
-import 'dart:js';
 import 'dart:typed_data';
 
 import 'commands/index.dart';
@@ -15,7 +14,7 @@ import 'config.dart';
 import 'constants.dart';
 import 'exception.dart';
 import 'fast_sha.dart';
-import 'file_operations.dart';
+import 'file_io.dart';
 import 'object.dart';
 import 'object_utils.dart';
 import 'pack.dart';
@@ -574,7 +573,7 @@ class ObjectStore {
     blobParts.add(new Uint8List.fromList([0]));
     blobParts.add(content);
 
-    var reader = new JsObject(context['FileReader']);
+    var reader = new FileReader;
 
     reader['onloadend'] = (var event) {
       dynamic result = reader['result'];

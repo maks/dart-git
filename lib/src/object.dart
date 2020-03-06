@@ -1,9 +1,6 @@
 // Copyright (c) 2013, Google Inc. Please see the AUTHORS file for details.
 // All rights reserved. Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-library git.objects;
-
 import 'dart:convert';
 import 'dart:core';
 import 'dart:typed_data';
@@ -127,7 +124,7 @@ class TreeObject extends GitObject {
           .decode(buffer.sublist(entryStart, entryStart + (isBlob ? 6 : 5)));
       String nameStr =
           utf8.decode(buffer.sublist(entryStart + (isBlob ? 7 : 6), idx++));
-      nameStr = Uri.decodeComponent(HTML_ESCAPE.convert(nameStr));
+      nameStr = Uri.decodeComponent(htmlEscape.convert(nameStr));
       TreeEntry entry = new TreeEntry(
           nameStr, buffer.sublist(idx, idx + 20), isBlob, permission);
       treeEntries.add(entry);
